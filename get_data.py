@@ -100,7 +100,7 @@ try:
 		'k.root-servers.net.',
 		'l.root-servers.net.',
 		'm.root-servers.net.',
-	]
+		]
 	res_servers = set()
 	r = res.query('.', 'NS')
 	for ns in r:
@@ -123,20 +123,20 @@ except Exception as e:
 
 universities = {}
 print_debug('INFO: Generating universities dictionary')
-universities[base_domain] = {'name':base_domain, 'domains':[base_domain], 'mail_domains':{}, 'lms_domains':{}, 'other_domains':{}, 'web_domains':{}, 'vid_domains':{}}
+universities[base_domain] = {'name': base_domain, 'domains': [base_domain], 'mail_domains': {}, 'lms_domains': {}, 'other_domains': {}, 'web_domains': {}, 'vid_domains': {}}
 for ad in add_domains:
 	universities[base_domain]['domains'].append(ad)
 for md in mail_domains:
-	universities[base_domain]['mail_domains'][md] = {'hosted_at':'', 'mx':[], 'comment':''}
+	universities[base_domain]['mail_domains'][md] = {'hosted_at': '', 'mx': [], 'comment': ''}
 for ld in lms_domains:
-	universities[base_domain]['lms_domains'][ld] = {'hosted_at':'', 'ips':[], 'comment':''}
+	universities[base_domain]['lms_domains'][ld] = {'hosted_at': '', 'ips': [], 'comment': ''}
 for od in other_domains:
-	universities[base_domain]['other_domains'][od] = {'hosted_at':'', 'ips':[], 'comment':''}
+	universities[base_domain]['other_domains'][od] = {'hosted_at': '', 'ips': [], 'comment': ''}
 for wd in universities[base_domain]['domains']:
-	universities[base_domain]['web_domains'][wd] = {'hosted_at':'', 'ips':[], 'comment':''}
-	universities[base_domain]['web_domains']['www.'+wd] = {'hosted_at':'', 'ips':[], 'comment':''}
+	universities[base_domain]['web_domains'][wd] = {'hosted_at': '', 'ips': [], 'comment': ''}
+	universities[base_domain]['web_domains']['www.'+wd] = {'hosted_at': '', 'ips': [], 'comment': ''}
 for vd in universities[base_domain]['domains']:
-	universities[base_domain]['vid_domains'][vd] = {'hosted_at':'', 'ips':[], 'comment':''}
+	universities[base_domain]['vid_domains'][vd] = {'hosted_at': '', 'ips': [], 'comment': ''}
 
 print_debug('INFO: Generated university dictionary: '+json.dumps(universities))
 
@@ -151,7 +151,8 @@ def check_mail_domains(mail_dom):
 		mail_dom[d]['dmarc'] = {
 			'ruf': [],
 			'rua': [],
-		}
+			}
+
 		try:
 			r = res.query(d, 'MX')
 			for mx in r:
@@ -163,9 +164,9 @@ def check_mail_domains(mail_dom):
 			for txt in r:
 				for v in str(txt.to_text()).split(';'):
 					if 'ruf' in v:
-						mail_dom[d]['dmarc']['ruf'] = v.split('=')[-1].replace('mailto:','').split(',')
+						mail_dom[d]['dmarc']['ruf'] = v.split('=')[-1].replace('mailto:', '').split(',')
 					if 'rua' in v:
-						mail_dom[d]['dmarc']['rua'] = v.split('=')[-1].replace('mailto:','').split(',')
+						mail_dom[d]['dmarc']['rua'] = v.split('=')[-1].replace('mailto:', '').split(',')
 			tmp_ruf = mail_dom[d]['dmarc']['ruf']
 			mail_dom[d]['dmarc']['ruf'] = []
 			for v in tmp_ruf:
@@ -186,11 +187,11 @@ def check_mail_domains(mail_dom):
 				mail_dom[d]['provider'].append('microsoft')
 			if 'surfmailfilter' in mx or 'surf.net' in mx:
 				mail_dom[d]['provider'].append('surf')
-		if mail_dom[d]['dmarc']['rua'] and not 'proofpoint' in mail_dom[d]['provider'] and not 'proofpoint_appliance' in mail_dom[d]['provider']:
+		if mail_dom[d]['dmarc']['rua'] and 'proofpoint' not in mail_dom[d]['provider'] and 'proofpoint_appliance' not in mail_dom[d]['provider']:
 			for rua in mail_dom[d]['dmarc']['rua']:
 				if 'proofpoint' in rua:
 					mail_dom[d]['provider'].append('proofpoint_appliance')
-		if mail_dom[d]['dmarc']['ruf'] and not 'proofpoint' in mail_dom[d]['provider'] and not 'proofpoint_appliance' in mail_dom[d]['provider']:
+		if mail_dom[d]['dmarc']['ruf'] and 'proofpoint' not in mail_dom[d]['provider'] and 'proofpoint_appliance' not in mail_dom[d]['provider']:
 			for ruf in mail_dom[d]['dmarc']['ruf']:
 				if 'proofpoint' in ruf:
 					mail_dom[d]['provider'].append('proofpoint_appliance')
@@ -306,7 +307,7 @@ def store_ip_dict(ip, d):
 
 
 def get_as_data_stub(ip):
-	d = {'ASN':0 , 'AS-NAME':'No Data Found for IP'}
+	d = {'ASN': 0 , 'AS-NAME': 'No Data Found for IP'}
 	store_ip_dict(ip, d)
 	return d
 
@@ -510,7 +511,7 @@ def print_univ_data(univ):
 				for tmp_dict in univ[u]['other_domains'][d]['ips']:
 					name = ''
 					prefix = '# Base name: '
-					while not 'AAAA' in tmp_dict:
+					while 'AAAA' not in tmp_dict:
 						name = list(tmp_dict.keys())[0]
 						print(prefix+name)
 						prefix = '# CNAME -> '
@@ -550,7 +551,7 @@ def print_univ_data(univ):
 					for tmp_dict in confirmed[fqdn]['ips']:
 						name = ''
 						prefix = '# Base name: '
-						while not 'AAAA' in tmp_dict:
+						while 'AAAA' not in tmp_dict:
 							name = list(tmp_dict.keys())[0]
 							print(prefix+name)
 							prefix = '# CNAME -> '
@@ -569,7 +570,7 @@ def get_saml_value(text):
 	a = re.compile(r'form[^<]+action=.([^\'"]+)')
 	try:
 		r_v = r.findall(text)[0]
-		a_v = a.findall(text)[0].replace('&#x2f;','/').replace('&#x3a;',':')
+		a_v = a.findall(text)[0].replace('&#x2f;', '/').replace('&#x3a;', ':')
 		return r_v, a_v
 	except (ET.ParseError, UnicodeEncodeError):
 		return None, None
