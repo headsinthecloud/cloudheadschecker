@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import logging
 import argparse
 import json
 import os
@@ -13,18 +14,13 @@ import requests
 from dns.exception import DNSException
 from publicsuffixlist import PublicSuffixList
 
-DEBUG = False
+logger = logging.getLogger('cloudcheck')
+
 IP_ADDR_LIST = {}
 
 
-# Debug printing
-def print_debug(s):
-    if DEBUG:
-        print(str(s))
-
-
 def parse_args():
-    global DEBUG
+
     # Parsing arguments
     parser = argparse.ArgumentParser()
     parser.add_argument('domain', help='Base domain of the university, e.g.: example.com; Required argument.')
@@ -51,33 +47,39 @@ def parse_args():
     parser.add_argument('--cache-file', help='Write full data to this file.', dest='cache_file')
 
     args = parser.parse_args()
-    DEBUG = args.debug
 
-    print_debug('INFO: Parsing arguments:')
-    print_debug('INFO: ' + str(args))
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+        logging.basicConfig(format='%(levelname)8s: [%(lineno)4s] %(message)s', level=logging.DEBUG)
+    else:
+        logger.setLevel(logging.WARNING)
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.WARNING)
+    logger.info('Arguments: %s', str(args))
+
     return args
 
 
 def get_resolver(dns_resolver):
     # Configure specific resolver if it is configured
     if not dns_resolver:
-        print_debug('INFO: No nameserver given. Using system resolver.')
+        logger.info('No nameserver given. Using system resolver.')
         # Setting up default resolver
         the_resolver = dns.resolver.Resolver(configure=True)
     else:
-        print_debug('INFO: Setting resolver to: ' + str(dns_resolver))
+        logger.info('Setting resolver to: %s', dns_resolver)
         try:
             the_resolver = dns.resolver.Resolver(configure=False)
             the_resolver.nameservers = [dns_resolver]
-        except Exception as ex:
-            sys.exit('ERROR: Could not set resolver ' + str(dns_resolver) + str(ex))
+        except (dns.exception, ValueError, TypeError) as ex:
+            logger.exception('Error setting resolver to %s', dns_resolver)
+            sys.exit('ERROR: Could not set resolver')
 
     # Test resolver
     try:
         if dns_resolver:
-            print_debug('INFO: Testing resolver: ' + dns_resolver)
+            logger.info('Testing resolver: %s', dns_resolver)
         else:
-            print_debug('INFO: Testing system resolver')
+            logger.info('Testing system resolver')
         root_servers = [
             'a.root-servers.net.',
             'b.root-servers.net.',
@@ -100,17 +102,17 @@ def get_resolver(dns_resolver):
                 res_servers.add(str(ns))
         if len(root_servers) == len(list(res_servers)):
             if dns_resolver:
-                print_debug('INFO: Found all ' + str(len(res_servers)) + ' root-servers at: ' + dns_resolver)
+                logger.info('Found all %d root-servers at: %s', len(res_servers),  dns_resolver)
             else:
-                print_debug('INFO: Found all ' + str(len(res_servers)) + ' root-servers at the system resolver.')
+                logger.info('Found all %d root-servers at the system resolver.', len(res_servers))
         else:
             if dns_resolver:
-                print('ERROR: Found only ' + str(len(res_servers)) + '/' + str(len(root_servers)) + ' root-servers at: ' + dns_resolver)
+                logger.fatal('Found only %d/%d root-servers at: %s', len(res_servers), len(root_servers), dns_resolver)
             else:
-                print('ERROR: Found only ' + str(len(res_servers)) + '/' + str(len(root_servers)) + ' root-servers at the system resolver.')
-            print('ERROR: Please use another resolver; Exiting.')
+                logger.fatal('Found only %d/%s root-servers at the system resolver.', len(res_servers), len(root_servers))
+            sys.exit('ERROR: Please use another resolver; Exiting.')
     except Exception as e:
-        print('ERROR: Resolver test failed with ' + str(e))
+        logger.fatal('Resolver test failed with %s', str(e))
         sys.exit(2)
 
     return the_resolver
@@ -194,7 +196,7 @@ def get_as_data_cymru():
     RDY = "Bulk mode; whois.cymru.com"
     DT = ""
 
-    print_debug('INFO: Using Team Cymru Bulk Whois')
+    logger.info('Using Team Cymru Bulk Whois')
 
     global IP_ADDR_LIST
 
@@ -204,26 +206,26 @@ def get_as_data_cymru():
             # data = s.recv(1024)
             fs = s.makefile()
             rdy = False
-            print_debug('INFO: Sending Begin')
+            logger.debug('Sending Begin')
             s.sendall(b"begin\n")
-            print_debug('INFO: Waiting for RDY')
+            logger.debug('Waiting for RDY')
             while not rdy:
                 line = fs.readline()
-                print_debug('INFO: Waiting for RDY, read: ' + line.strip())
+                logger.debug('Waiting for RDY, read: %s', line.strip())
                 if RDY in line.strip():
-                    print_debug('INFO: ' + RDY + ' found in string; We are ready!')
+                    logger.debug('%s found in string; We are ready!', RDY)
                     rdy = True
-            print_debug('INFO: Requesting IPs')
+            logger.debug('Requesting IPs')
             for ip in IP_ADDR_LIST:
                 s.sendall((ip + DT + "\n").encode('utf-8'))
                 data_raw = fs.readline().strip()
-                print_debug('INFO: read: ' + data_raw)
+                logger.debug('read: %s', data_raw)
                 try:
                     split_data = data_raw.split('|')
                     try:
                         d = {'ASN': split_data[0].strip(), 'AS-NAME': split_data[2].strip().split()[0]}
                     except Exception as e:
-                        print_debug('WARNING: request failed with ' + str(e))
+                        logger.warning('request failed with %s', str(e))
                         d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
 
                     IP_ADDR_LIST[ip]['ASN'] = d['ASN']
@@ -247,7 +249,7 @@ def get_as_data():
     SFX = "# goodbye"
     DT = " 20221015"
 
-    print_debug('INFO: Using AS59645 Bulk Whois; Selected date:' + DT)
+    logger.info('Using AS59645 Bulk Whois; Selected date: %s', DT)
 
     global IP_ADDR_LIST
     try:
@@ -318,31 +320,32 @@ def res_to_ip(res, name):
 
 
 def check_lms_domains(res, lms_dom, u_domains):
-    print_debug('INFO: Running ' + json.dumps(lms_dom))
+    logger.info('Running %s', json.dumps(lms_dom))
     psl = PublicSuffixList()
     for d in lms_dom:
-        print_debug('INFO: Checking ' + str(d) + ' ' + str(u_domains))
+        logger.info('Checking %s %s', str(d), str(u_domains))
         lms_dom[d]['provider'] = []
         lms_dom[d]['hosted_at'] = []
         lms_dom[d]['ips_list'] = []
         tmp_dict, ips = res_to_ip(res, d)
-        print_debug('INFO: For ' + str(ips) + ' received ' + json.dumps(tmp_dict))
+        logger.info('For %s received %s', str(ips), json.dumps(tmp_dict))
         lms_dom[d]['ips_list'] += ips
         lms_dom[d]['ips'].append(tmp_dict)
         in_dom = True
+        lms_priv = None
         while in_dom:
             in_dom_tmp = False
             tmp_name = list(tmp_dict.keys())[0]
-            print_debug('INFO: For ' + str(tmp_name) + ' list is ' + str(list(tmp_dict.keys())))
+            logger.info('For %s list is %s', str(tmp_name), str(list(tmp_dict.keys())))
             lms_priv = psl.privatesuffix(tmp_name.strip('.'))
             for u_dom in u_domains:
                 if u_dom.strip('.') == lms_priv:
                     in_dom_tmp = True
                 # elif 'A' == tmp_name or 'AAAA' == tmp_name:
                 #    in_dom_tmp = False
-                print_debug('INFO: For ' + str(lms_priv) + ' in_tmp set to ' + str(in_dom_tmp))
+                logger.info('For %s in_tmp set to %s', str(lms_priv), str(in_dom_tmp))
             in_dom = in_dom_tmp
-            print_debug('INFO: For ' + str(tmp_name) + ' in_dom set to ' + str(in_dom))
+            logger.info('For %s in_dom set to %s', str(tmp_name), str(in_dom))
             if not ('AAAA' in tmp_dict or 'A' in tmp_dict):
                 tmp_dict = tmp_dict[tmp_name]
         if lms_priv:
@@ -359,26 +362,26 @@ def check_lms_domains(res, lms_dom, u_domains):
             for ip in tmp_dict[rr]:
                 lms_dom[d]['hosted_at'].append(tmp_dict[rr][ip]['AS-NAME'])
         lms_dom[d]['hosted_at'] = list(set(lms_dom[d]['hosted_at']))
-    print_debug('INFO: Returning lms_dom: ' + json.dumps(lms_dom))
+    logger.info('Returning lms_dom: %s', json.dumps(lms_dom))
     return lms_dom
 
 
 def set_hosted_at(dom_set):
     global IP_ADDR_LIST
-    print_debug('INFO: checking dom_set for: ' + json.dumps(dom_set))
+    logger.info('checking dom_set for: %s', json.dumps(dom_set))
     if not dom_set:
         return {}
     for d in dom_set:
         dom_set[d]['hosted_at'] = []
-        print_debug('INFO: checking ' + str(d) + ', ' + json.dumps(dom_set[d]))
+        logger.info('checking %s, %s', str(d), json.dumps(dom_set[d]))
         for h in dom_set[d]['ips']:
-            print_debug('INFO: checking ' + str(h))
+            logger.info('checking %s', str(h))
             for fqdn in h:
-                print_debug('INFO: checking ' + str(fqdn) + ', ' + json.dumps(h[fqdn]))
+                logger.info('checking %s, %s', str(fqdn), json.dumps(h[fqdn]))
                 tmp_h = h
                 while not ('A' in tmp_h or 'AAAA' in tmp_h):
                     fqdn = list(tmp_h.keys())[0]
-                    print_debug('INFO: checking ' + str(fqdn) + ', ' + json.dumps(tmp_h))
+                    logger.info('checking %s, %s', str(fqdn), json.dumps(tmp_h))
                     tmp_h = tmp_h[fqdn]
                 for rr in tmp_h:
                     for ipaddr in tmp_h[rr]:
@@ -418,7 +421,7 @@ def print_univ_data(univ):
                 for tmp_dict in univ[u]['mail_domains'][d]['ips']:
                     print('# ')
                     prefix = '# MX: '
-                    while not 'AAAA' in tmp_dict:
+                    while 'AAAA' not in tmp_dict:
                         name = list(tmp_dict.keys())[0]
                         print(prefix + name)
                         prefix = '# CNAME -> '
@@ -440,7 +443,7 @@ def print_univ_data(univ):
                 print('# ')
                 for tmp_dict in univ[u]['lms_domains'][d]['ips']:
                     prefix = '# Base name: '
-                    while not 'AAAA' in tmp_dict:
+                    while 'AAAA' not in tmp_dict:
                         name = list(tmp_dict.keys())[0]
                         print(prefix + name)
                         prefix = '# CNAME -> '
@@ -462,9 +465,8 @@ def print_univ_data(univ):
                         print('# Comment: ' + univ[u]['web_domains'][d]['comment'])
                     print('# ')
                     for tmp_dict in univ[u]['web_domains'][d]['ips']:
-                        name = ''
                         prefix = '# Base name: '
-                        while not 'AAAA' in tmp_dict:
+                        while 'AAAA' not in tmp_dict:
                             name = list(tmp_dict.keys())[0]
                             print(prefix + name)
                             prefix = '# CNAME -> '
@@ -475,7 +477,7 @@ def print_univ_data(univ):
                     print('#-')
                 else:
                     # print('# '+d+' does not exist')
-                    print_debug('INFO: web_domain unavailable: ' + json.dumps(univ[u]['web_domains'][d]))
+                    logger.info('web_domain unavailable: %s', json.dumps(univ[u]['web_domains'][d]))
         if list(univ[u]['other_domains'].keys()):
             print('### Other Service(s)')
             print('# Names surveyed: ' + ', '.join(list(univ[u]['other_domains'].keys())))
@@ -507,12 +509,12 @@ def print_univ_data(univ):
                 services = []
                 confirmed = {}
                 for fqdn in univ[u]['vid_domains'][d]:
-                    if len(univ[u]['vid_domains'][d][fqdn]['likelyhood']) > 1 and not 'msft' in univ[u]['vid_domains'][d][fqdn]['provider']:
+                    if len(univ[u]['vid_domains'][d][fqdn]['likelyhood']) > 1 and 'msft' not in univ[u]['vid_domains'][d][fqdn]['provider']:
                         services += univ[u]['vid_domains'][d][fqdn]['provider']
-                        print_debug('INFO: Found provider ' + str(univ[u]['vid_domains'][d][fqdn]['provider']))
+                        logger.info('Found provider %s', str(univ[u]['vid_domains'][d][fqdn]['provider']))
                         confirmed[fqdn] = univ[u]['vid_domains'][d][fqdn]
                     elif 'msft' in univ[u]['vid_domains'][d][fqdn]['provider']:
-                        print_debug('INFO: ' + json.dumps(univ[u]['vid_domains'][d][fqdn]))
+                        logger.info(json.dumps(univ[u]['vid_domains'][d][fqdn]))
                         if len(univ[u]['vid_domains'][d][fqdn]['likelyhood']) > 1:
                             if 'MICROSOFT' in univ[u]['vid_domains'][d][fqdn]['hosted_at']:
                                 services.append('sfb/teams-cloud')
@@ -570,7 +572,7 @@ def check_vid_domains(res, uni_dom):
 
         for s in rem_services:
             sn = s.split('.')[-3]
-            if not sn in test_names_rs:
+            if sn not in test_names_rs:
                 test_names_rs[sn] = {}
 
             if len(pref) > 2:
@@ -583,17 +585,17 @@ def check_vid_domains(res, uni_dom):
             test_names_rs['bbb'][s + '.' + d] = d
 
         test_names_rs['msft'] = {'lyncdiscover.' + d: d}
-        print_debug('INFO: Generated rem_services list for ' + d + ': ' + json.dumps(test_names_rs))
+        logger.info('Generated rem_services list for %s: %s', d, json.dumps(test_names_rs))
 
-        print_debug('INFO: Getting TXT records for ' + d)
+        logger.info('Getting TXT records for %s', d)
         txt_record = []
         try:
             r = res.resolve(d, 'TXT')
             for txt in r:
                 txt_record.append(txt.to_text())
-            print_debug('INFO: Got TXT record for ' + d + ': ' + str(txt_record))
+            logger.info('Got TXT record for %s: %s', d, str(txt_record))
         except Exception as e:
-            print_debug('WARNING: Could not get TXT record for ' + d + ': ' + str(e))
+            logger.warning('Could not get TXT record for %s: %s', d, str(e))
 
         # zoom
         for fqdn in test_names_rs['zoom']:
@@ -603,33 +605,33 @@ def check_vid_domains(res, uni_dom):
                 for txtrr in txt_record:
                     if 'ZOOM_verify' in txtrr:
                         ret[d][fqdn]['likelyhood'].append('txtconfirm')
-                print_debug('INFO: Zoom Host Found: ' + json.dumps(ret[d][fqdn]))
+                logger.info('Zoom Host Found: %s', json.dumps(ret[d][fqdn]))
 
                 site_url = "https://" + fqdn + "/signin"
                 try:
                     site_support_data_request = requests.get(site_url)
                     site_support_data = site_support_data_request.content.decode('utf-8').strip()
 
-                    if not 'SAMLRequest' in site_support_data:
+                    if 'SAMLRequest' not in site_support_data:
                         for tmp_d in uni_dom:
                             if tmp_d in site_support_data:
                                 ret[d][fqdn]['likelyhood'].append('webconfirm')
-                                print_debug('INFO: found login reference for ' + fqdn + ' and domain ' + tmp_d)
+                                logger.info('found login reference for %s and domain %s', fqdn, tmp_d)
                         else:
-                            print_debug('INFO: found no login reference for ' + fqdn)
+                            logger.info('found no login reference for %s', fqdn)
                     else:
                         v, a = get_saml_value(site_support_data_request.text)
-                        # print_debug('INFO: SAMLdata: '+v)
-                        print_debug('INFO: SAMLaction: ' + a)
+                        # logger.info('SAMLdata: %s', v)
+                        logger.info('SAMLaction: %s',  a)
                         req_saml = requests.post(a, data={"SAMLRequest": v})
                         req_saml_res = req_saml.text
                         for tmp_d in uni_dom:
                             if tmp_d in req_saml_res:
                                 ret[d][fqdn]['likelyhood'].append('webconfirm')
-                                print_debug('INFO: found login reference for ' + fqdn + ' and domain ' + tmp_d)
+                                logger.info('found login reference for %s and domain %s', fqdn, tmp_d)
 
                 except Exception as e:
-                    print_debug('WARNING: Failed to get login data from ' + site_url + ': ' + str(e))
+                    logger.warning('Failed to get login data from %s: %s', site_url, str(e))
             # print_debug('INFO: WebEx Host Found: '+json.dumps(ret[d][fqdn]))
 
         # webex
@@ -646,12 +648,12 @@ def check_vid_domains(res, uni_dom):
                     for tmp_d in uni_dom:
                         if tmp_d in site_support_data:
                             ret[d][fqdn]['likelyhood'].append('webconfirm')
-                            print_debug('INFO: found support reference for ' + fqdn + ' and domain ' + tmp_d)
+                            logger.info('found support reference for %s and domain %s', fqdn, tmp_d)
                     else:
-                        print_debug('INFO: found no support reference for ' + fqdn)
+                        logger.info('found no support reference for %s', fqdn)
                 except Exception as e:
-                    print_debug('WARNING: Failed to get support data from ' + site_url + ': ' + str(e))
-                print_debug('INFO: WebEx Host Found: ' + json.dumps(ret[d][fqdn]))
+                    logger.warning('Failed to get support data from %s: %s', site_url, str(e))
+                logger.info('WebEx Host Found: %s', json.dumps(ret[d][fqdn]))
 
         # bbb
         for fqdn in test_names_rs['bbb']:
@@ -664,12 +666,12 @@ def check_vid_domains(res, uni_dom):
                     # print_debug('INFO: '+site_support_data)
                     if 'BigBlueButton' in site_support_data:
                         ret[d][fqdn]['likelyhood'].append('webconfirm')
-                        print_debug('INFO: found support reference for ' + fqdn + ' and domain ' + tmp_d)
+                        logger.info('found support reference for %s', fqdn)
                     else:
-                        print_debug('INFO: found no support reference for ' + fqdn)
+                        logger.info('found no support reference for %s', fqdn)
                 except Exception as e:
-                    print_debug('WARNING: Failed to get support data from ' + site_url + ': ' + str(e))
-                print_debug('INFO: BBB Host Found: ' + json.dumps(ret[d][fqdn]))
+                    logger.warning('Failed to get support data from %s: %s', site_url, str(e))
+                logger.info('BBB Host Found: %s', json.dumps(ret[d][fqdn]))
 
         # SfB
         for fqdn in test_names_rs['msft']:
@@ -679,7 +681,7 @@ def check_vid_domains(res, uni_dom):
                 for txtrr in txt_record:
                     if 'MS=ms' in txtrr:
                         ret[d][fqdn]['likelyhood'].append('txtconfirm')
-                print_debug('INFO: Msft Host Found: ' + json.dumps(ret[d][fqdn]))
+                logger.info('Msft Host Found: %s', json.dumps(ret[d][fqdn]))
     return ret
 
 
@@ -713,7 +715,7 @@ def main():
         other_domains = []
 
     universities = {}
-    print_debug('INFO: Generating universities dictionary')
+    logger.info('Generating universities dictionary')
     universities[base_domain] = {
         'name': base_domain, 'domains': [base_domain], 'mail_domains': {}, 'lms_domains': {},
         'other_domains': {}, 'web_domains': {}, 'vid_domains': {}
@@ -732,17 +734,17 @@ def main():
     for vd in universities[base_domain]['domains']:
         universities[base_domain]['vid_domains'][vd] = {'hosted_at': '', 'ips': [], 'comment': ''}
 
-    print_debug('INFO: Generated university dictionary: ' + json.dumps(universities))
+    logger.info('Generated university dictionary: %s', json.dumps(universities))
 
     use_cache = False
     if cache_file:
         if os.path.isfile(cache_file):
             use_cache = True
-            print_debug('INFO: ' + cache_file + ' found; Using cache.')
+            logger.info('%s found; Using cache.', cache_file)
     if use_cache:
         universities = json.loads(open('./data.json').read().strip())
     else:
-        print_debug('INFO: no cache found; Querying data.')
+        logger.info('no cache found; Querying data.')
         for u in universities:
             universities[u]['mail_domains'] = check_mail_domains(resolver, universities[u]['mail_domains'])
             universities[u]['lms_domains'] = check_lms_domains(resolver, universities[u]['lms_domains'], universities[u]['domains'])
