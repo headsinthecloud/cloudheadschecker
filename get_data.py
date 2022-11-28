@@ -11,11 +11,11 @@ import requests
 import re
 
 from publicsuffixlist import PublicSuffixList
-psl = PublicSuffixList()
 
 res = None
 DEBUG = False
 IP_ADDR_LIST = {}
+
 
 # Debug printing
 def print_debug(s):
@@ -319,6 +319,7 @@ def res_to_ip(name):
 
 def check_lms_domains(lms_dom, u_domains):
 	print_debug('INFO: Running '+json.dumps(lms_dom))
+	psl = PublicSuffixList()
 	for d in lms_dom:
 		print_debug('INFO: Checking '+str(d)+' '+str(u_domains))
 		lms_dom[d]['provider'] = []
@@ -549,11 +550,12 @@ def get_saml_value(text):
 		r_v = r.findall(text)[0]
 		a_v = a.findall(text)[0].replace('&#x2f;', '/').replace('&#x3a;', ':')
 		return r_v, a_v
-	except (ET.ParseError, UnicodeEncodeError):
+	except UnicodeEncodeError:
 		return None, None
 
 
 def check_vid_domains(uni_dom):
+	psl = PublicSuffixList()
 	ret = {}
 	for d in uni_dom:
 		#ret[d] = {'hosted_at':[], 'ips':[], "provider":[], 'ips_list': []}
