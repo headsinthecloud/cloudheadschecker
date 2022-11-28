@@ -266,10 +266,8 @@ def get_as_data():
             for ip in IP_ADDR_LIST:
                 s.sendall((ip + DT + "\n").encode('utf-8'))
             s.sendall(b"end\n")
-            data_raw = ''
-            while not data_raw == SFX:
-                data_raw = fs.readline().strip()
-
+            data_raw = fs.readline().strip()
+            while data_raw and not data_raw == SFX:
                 data = json.loads(data_raw)
                 if data['results']:
                     d = {'ASN': data['results']['asns'][0], 'AS-NAME': data['results']['as2org'][0]['ASNAME']}
@@ -277,7 +275,11 @@ def get_as_data():
                     d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
                 IP_ADDR_LIST[data['IP']]['ASN'] = d['ASN']
                 IP_ADDR_LIST[data['IP']]['AS-NAME'] = d['AS-NAME'].strip(',')
+                data_raw = fs.readline().strip()
 
+    except (JSONDecodeError, ValueError, TypeError) as dec:
+        logger.exception('Error parsing %s', data_raw)
+        sys.exit(f'Error decoding AS59645 Bulk Whois: {dec}')
     except (socket.error, IOError, OSError, JSONDecodeError) as ose:
         sys.exit(f'Error querying AS59645 Bulk Whois: {ose}')
 
