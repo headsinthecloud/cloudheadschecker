@@ -9,6 +9,7 @@ import sys
 
 import dns.resolver
 import requests
+from dns.exception import DNSException
 from publicsuffixlist import PublicSuffixList
 
 DEBUG = False
@@ -131,7 +132,7 @@ def check_mail_domains(res, mail_dom):
             r = res.query(d, 'MX')
             for mx in r:
                 mail_dom[d]['mx'].append(str(mx.to_text()).split()[-1])
-        except:
+        except DNSException:
             pass
         try:
             r = res.query('_dmarc.' + d, 'TXT')
@@ -149,7 +150,7 @@ def check_mail_domains(res, mail_dom):
             mail_dom[d]['dmarc']['rua'] = []
             for v in tmp_rua:
                 mail_dom[d]['dmarc']['rua'].append(v.strip('"'))
-        except:
+        except (DNSException, ValueError):
             pass
         for mx in mail_dom[d]['mx']:
             ipdata, ips = res_to_ip(res, mx)
@@ -190,13 +191,12 @@ def get_as_data_cymru():
     HOST = "whois.cymru.com"
     PORT = 43
     RDY = "Bulk mode; whois.cymru.com"
-    SFX = ""
     DT = ""
 
     print_debug('INFO: Using Team Cymru Bulk Whois')
 
     global IP_ADDR_LIST
-    res_data = {}
+    
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
         # data = s.recv(1024)
@@ -206,9 +206,9 @@ def get_as_data_cymru():
         s.sendall(b"begin\n")
         print_debug('INFO: Waiting for RDY')
         while not rdy:
-            l = fs.readline()
-            print_debug('INFO: Waiting for RDY, read: ' + l.strip())
-            if RDY in l.strip():
+            line = fs.readline()
+            print_debug('INFO: Waiting for RDY, read: ' + line.strip())
+            if RDY in line.strip():
                 print_debug('INFO: ' + RDY + ' found in string; We are ready!')
                 rdy = True
         print_debug('INFO: Requesting IPs')
@@ -226,8 +226,9 @@ def get_as_data_cymru():
 
                 IP_ADDR_LIST[ip]['ASN'] = d['ASN']
                 IP_ADDR_LIST[ip]['AS-NAME'] = d['AS-NAME'].strip(',')
-            except:
+            except (IOError, OSError) as ose:
                 pass
+
 
     # s.sendall(b"end\n")
     # data_raw = ''
@@ -245,7 +246,6 @@ def get_as_data():
     print_debug('INFO: Using AS59645 Bulk Whois; Selected date:' + DT)
 
     global IP_ADDR_LIST
-    res_data = {}
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.connect((HOST, PORT))
         # data = s.recv(1024)
@@ -326,7 +326,6 @@ def check_lms_domains(res, lms_dom, u_domains):
         print_debug('INFO: For ' + str(ips) + ' received ' + json.dumps(tmp_dict))
         lms_dom[d]['ips_list'] += ips
         lms_dom[d]['ips'].append(tmp_dict)
-        p = 'none'
         in_dom = True
         while in_dom:
             in_dom_tmp = False
@@ -337,7 +336,7 @@ def check_lms_domains(res, lms_dom, u_domains):
                 if u_dom.strip('.') == lms_priv:
                     in_dom_tmp = True
                 # elif 'A' == tmp_name or 'AAAA' == tmp_name:
-                #	in_dom_tmp = False
+                #    in_dom_tmp = False
                 print_debug('INFO: For ' + str(lms_priv) + ' in_tmp set to ' + str(in_dom_tmp))
             in_dom = in_dom_tmp
             print_debug('INFO: For ' + str(tmp_name) + ' in_dom set to ' + str(in_dom))
@@ -415,7 +414,6 @@ def print_univ_data(univ):
                 print('# MXes: ' + ', '.join(univ[u]['mail_domains'][d]['mx']))
                 for tmp_dict in univ[u]['mail_domains'][d]['ips']:
                     print('# ')
-                    name = ''
                     prefix = '# MX: '
                     while not 'AAAA' in tmp_dict:
                         name = list(tmp_dict.keys())[0]
@@ -438,7 +436,6 @@ def print_univ_data(univ):
                     print('# Comment: ' + univ[u]['lms_domains'][d]['comment'])
                 print('# ')
                 for tmp_dict in univ[u]['lms_domains'][d]['ips']:
-                    name = ''
                     prefix = '# Base name: '
                     while not 'AAAA' in tmp_dict:
                         name = list(tmp_dict.keys())[0]
@@ -488,7 +485,6 @@ def print_univ_data(univ):
                     print('# Comment: ' + univ[u]['other_domains'][d]['comment'])
                 print('# ')
                 for tmp_dict in univ[u]['other_domains'][d]['ips']:
-                    name = ''
                     prefix = '# Base name: '
                     while 'AAAA' not in tmp_dict:
                         name = list(tmp_dict.keys())[0]
@@ -528,7 +524,6 @@ def print_univ_data(univ):
                     print('# Service: ' + ', '.join(confirmed[fqdn]['provider']))
                     print('# Hosted at: ' + ', '.join(confirmed[fqdn]['hosted_at']))
                     for tmp_dict in confirmed[fqdn]['ips']:
-                        name = ''
                         prefix = '# Base name: '
                         while 'AAAA' not in tmp_dict:
                             name = list(tmp_dict.keys())[0]
@@ -607,7 +602,6 @@ def check_vid_domains(res, uni_dom):
                         ret[d][fqdn]['likelyhood'].append('txtconfirm')
                 print_debug('INFO: Zoom Host Found: ' + json.dumps(ret[d][fqdn]))
 
-                site_name = fqdn.split('.')[0]
                 site_url = "https://" + fqdn + "/signin"
                 try:
                     site_support_data_request = requests.get(site_url)
@@ -661,7 +655,6 @@ def check_vid_domains(res, uni_dom):
             ip, iplist = res_to_ip(res, fqdn)
             if iplist:
                 ret[d][fqdn] = {'hosted_at': [], 'ips': [ip], "provider": ['bbb'], 'ips_list': iplist, 'likelyhood': ['domconfirm']}
-                site_name = fqdn.split('.')[0]
                 site_url = "https://" + fqdn + "/"
                 try:
                     site_support_data = requests.get(site_url).content.decode('utf-8').strip()
