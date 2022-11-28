@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 import sys
 import os
@@ -193,7 +193,7 @@ def check_mail_domains(mail_dom):
 				if 'proofpoint' in ruf:
 					mail_dom[d]['provider'].append('proofpoint_appliance')
 		mail_dom[d]['provider'] = list(set(mail_dom[d]['provider']))
-		
+
 		for tmp_dict in mail_dom[d]['ips']:
 			ip = False
 			while not ip:
@@ -214,9 +214,9 @@ def get_as_data_cymru():
 	RDY = "Bulk mode; whois.cymru.com"
 	SFX = ""
 	DT = ""
-	
+
 	print_debug('INFO: Using Team Cymru Bulk Whois')
-	
+
 	global IP_ADDR_LIST
 	res_data = {}
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -245,16 +245,16 @@ def get_as_data_cymru():
 				except Exception as e:
 					print_debug('WARNING: request failed with '+str(e))
 					d = {'ASN':0 , 'AS-NAME':'No Data Found for IP'}
-				
+
 				IP_ADDR_LIST[ip]['ASN'] = d['ASN']
 				IP_ADDR_LIST[ip]['AS-NAME'] = d['AS-NAME'].strip(',')
 			except:
 				pass
-			
+
 #		s.sendall(b"end\n")
 #		data_raw = ''
 #		while  not data_raw == SFX:
-#			
+#
 
 def get_as_data():
 	HOST = "bttf-whois.as59645.net"
@@ -262,9 +262,9 @@ def get_as_data():
 	RDY = "# READY"
 	SFX = "# goodbye"
 	DT = " 20221015"
-	
+
 	print_debug('INFO: Using AS59645 Bulk Whois; Selected date:'+DT)
-	
+
 	global IP_ADDR_LIST
 	res_data = {}
 	with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -361,7 +361,7 @@ def check_lms_domains(lms_dom, u_domains):
 				tmp_dict = tmp_dict[tmp_name]
 		if lms_priv:
 			lms_dom[d]['provider'].append(lms_priv)
-		
+
 		ip = False
 		while not ip:
 			tmp_name = list(tmp_dict.keys())[0]
@@ -569,32 +569,32 @@ def check_vid_domains(uni_dom):
 	for d in uni_dom:
 		#ret[d] = {'hosted_at':[], 'ips':[], "provider":[], 'ips_list': []}
 		ret[d] = {}
-		
+
 		test_names_rs = {}
 		rem_services = ['.zoom.us.', '.webex.com.']
-		
+
 		priv = psl.privatesuffix(d.strip('.'))
 		pref = priv.split('.')[0]
 		dot = priv.replace('.','-')
 		live = pref+'-live'
-		
+
 		for s in rem_services:
 			sn = s.split('.')[-3]
 			if not sn in test_names_rs:
 				test_names_rs[sn] = {}
-			
+
 			if len(pref) > 2:
 				test_names_rs[sn][pref+s] = d
 			test_names_rs[sn][dot+s] = d
-			test_names_rs[sn][live+s] = d 
+			test_names_rs[sn][live+s] = d
 		# BBB
 		test_names_rs['bbb'] = {}
 		for s in ['bbb', 'greenlight', 'scalelite']:
 			test_names_rs['bbb'][s+'.'+d] = d
-		
+
 		test_names_rs['msft'] = {'lyncdiscover.'+d: d}
 		print_debug('INFO: Generated rem_services list for '+d+': '+json.dumps(test_names_rs))
-		
+
 		print_debug('INFO: Getting TXT records for '+d)
 		txt_record = []
 		try:
@@ -604,8 +604,7 @@ def check_vid_domains(uni_dom):
 			print_debug('INFO: Got TXT record for '+d+': '+str(txt_record))
 		except Exception as e:
 			print_debug('WARNING: Could not get TXT record for '+d+': '+str(e))
-		
-		
+
 		# zoom
 		for fqdn in test_names_rs['zoom']:
 			ip, iplist = res_to_ip(fqdn)
@@ -615,13 +614,13 @@ def check_vid_domains(uni_dom):
 					if 'ZOOM_verify' in txtrr:
 						ret[d][fqdn]['likelyhood'].append('txtconfirm')
 				print_debug('INFO: Zoom Host Found: '+json.dumps(ret[d][fqdn]))
-				
+
 				site_name = fqdn.split('.')[0]
 				site_url = "https://"+fqdn+"/signin"
 				try:
 					site_support_data_request = requests.get(site_url)
 					site_support_data = site_support_data_request.content.decode('utf-8').strip()
-					
+
 					if not 'SAMLRequest' in site_support_data:
 						for tmp_d in uni_dom:
 							if tmp_d in site_support_data:
@@ -639,11 +638,11 @@ def check_vid_domains(uni_dom):
 							if tmp_d in req_saml_res:
 								ret[d][fqdn]['likelyhood'].append('webconfirm')
 								print_debug('INFO: found login reference for '+fqdn+' and domain '+tmp_d)
-						
+
 				except Exception as e:
 					print_debug('WARNING: Failed to get login data from '+site_url+': '+str(e))
 #				print_debug('INFO: WebEx Host Found: '+json.dumps(ret[d][fqdn]))
-		
+
 		# webex
 		for fqdn in test_names_rs['webex']:
 			ip, iplist = res_to_ip(fqdn)
@@ -664,7 +663,7 @@ def check_vid_domains(uni_dom):
 				except Exception as e:
 					print_debug('WARNING: Failed to get support data from '+site_url+': '+str(e))
 				print_debug('INFO: WebEx Host Found: '+json.dumps(ret[d][fqdn]))
-		
+
 		# bbb
 		for fqdn in test_names_rs['bbb']:
 			ip, iplist = res_to_ip(fqdn)
@@ -683,7 +682,7 @@ def check_vid_domains(uni_dom):
 				except Exception as e:
 					print_debug('WARNING: Failed to get support data from '+site_url+': '+str(e))
 				print_debug('INFO: BBB Host Found: '+json.dumps(ret[d][fqdn]))
-		
+
 		# SfB
 		for fqdn in test_names_rs['msft']:
 			ip, iplist = res_to_ip(fqdn)
