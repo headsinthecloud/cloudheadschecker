@@ -116,9 +116,9 @@ def get_resolver(dns_resolver):
 	return the_resolver
 
 
-
-
 def check_mail_domains(mail_dom):
+	global res
+
 	for d in mail_dom:
 		print('# Getting mail data for', d)
 		mail_dom[d]['hosted_at'] = []
@@ -263,7 +263,7 @@ def get_as_data():
 			s.sendall((ip+DT+"\n").encode('utf-8'))
 		s.sendall(b"end\n")
 		data_raw = ''
-		while  not data_raw == SFX:
+		while not data_raw == SFX:
 			data_raw = fs.readline().strip()
 			try:
 				data = json.loads(data_raw)
@@ -284,7 +284,7 @@ def store_ip_dict(ip, d):
 
 
 def get_as_data_stub(ip):
-	d = {'ASN': 0 , 'AS-NAME': 'No Data Found for IP'}
+	d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
 	store_ip_dict(ip, d)
 	return d
 
