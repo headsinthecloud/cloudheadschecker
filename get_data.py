@@ -41,104 +41,71 @@ parser.add_argument('--cache-file', help='Write full data to this file.', dest='
 args = parser.parse_args()
 DEBUG = args.debug
 
-
 print_debug('INFO: Parsing arguments:')
 print_debug('INFO: '+str(args))
-base_domain = args.domain
-dns_resolver = args.dns_resolver
-whois = args.whois
-vid_check = args.vid_check
-web_check = args.web_check
-cache_file = args.cache_file
-if args.add_domains:
-	add_domains = [item for sublist in args.add_domains for item in sublist]
-else:
-	add_domains = []
-if args.mail_domains:
-	mail_domains = [item for sublist in args.mail_domains for item in sublist]
-else:
-	mail_domains = []
-if args.lms_domains:
-	lms_domains = [item for sublist in args.lms_domains for item in sublist]
-else:
-	lms_domains = []
-if args.other_domains:
-	other_domains = [item for sublist in args.other_domains for item in sublist]
-else:
-	other_domains = []
 
-# Configure specific resolver if it is configured
-if not dns_resolver:
-	print_debug('INFO: No nameserver given. Using system resolver.')
-	# Setting up default resolver
-	res = dns.resolver.Resolver(configure=True)
-else:
-	print_debug('INFO: Setting resolver to: '+str(dns_resolver))
+
+def get_resolver(dns_resolver):
+
+	# Configure specific resolver if it is configured
+	if not dns_resolver:
+		print_debug('INFO: No nameserver given. Using system resolver.')
+		# Setting up default resolver
+		the_resolver = dns.resolver.Resolver(configure=True)
+	else:
+		print_debug('INFO: Setting resolver to: ' + str(dns_resolver))
+		try:
+			the_resolver = dns.resolver.Resolver(configure=False)
+			the_resolver.nameservers = [dns_resolver]
+		except:
+			sys.exit('ERROR: Could not set resolver ' + str(dns_resolver))
+
+	# Test resolver
 	try:
-		res = dns.resolver.Resolver(configure=False)
-		res.nameservers = [dns_resolver]
-	except:
-		print('ERROR: Could not set resolver '+str(dns_resolver))
-
-# Test resolver
-try:
-	if dns_resolver:
-		print_debug('INFO: Testing resolver: '+dns_resolver)
-	else:
-		print_debug('INFO: Testing system resolver')
-	root_servers = [
-		'a.root-servers.net.',
-		'b.root-servers.net.',
-		'c.root-servers.net.',
-		'd.root-servers.net.',
-		'e.root-servers.net.',
-		'f.root-servers.net.',
-		'g.root-servers.net.',
-		'h.root-servers.net.',
-		'i.root-servers.net.',
-		'j.root-servers.net.',
-		'k.root-servers.net.',
-		'l.root-servers.net.',
-		'm.root-servers.net.',
-		]
-	res_servers = set()
-	r = res.query('.', 'NS')
-	for ns in r:
-		if str(ns) in root_servers:
-			res_servers.add(str(ns))
-	if len(root_servers) == len(list(res_servers)):
 		if dns_resolver:
-			print_debug('INFO: Found all '+str(len(res_servers))+' root-servers at: '+dns_resolver)
+			print_debug('INFO: Testing resolver: ' + dns_resolver)
 		else:
-			print_debug('INFO: Found all '+str(len(res_servers))+' root-servers at the system resolver.')
-	else:
-		if dns_resolver:
-			print('ERROR: Found only '+str(len(res_servers))+'/'+str(len(root_servers))+' root-servers at: '+dns_resolver)
+			print_debug('INFO: Testing system resolver')
+		root_servers = [
+			'a.root-servers.net.',
+			'b.root-servers.net.',
+			'c.root-servers.net.',
+			'd.root-servers.net.',
+			'e.root-servers.net.',
+			'f.root-servers.net.',
+			'g.root-servers.net.',
+			'h.root-servers.net.',
+			'i.root-servers.net.',
+			'j.root-servers.net.',
+			'k.root-servers.net.',
+			'l.root-servers.net.',
+			'm.root-servers.net.',
+			]
+		res_servers = set()
+		r = the_resolver.resolve('.', 'NS')
+		for ns in r:
+			if str(ns) in root_servers:
+				res_servers.add(str(ns))
+		if len(root_servers) == len(list(res_servers)):
+			if dns_resolver:
+				print_debug('INFO: Found all ' + str(len(res_servers)) + ' root-servers at: ' + dns_resolver)
+			else:
+				print_debug('INFO: Found all ' + str(len(res_servers)) + ' root-servers at the system resolver.')
 		else:
-			print('ERROR: Found only '+str(len(res_servers))+'/'+str(len(root_servers))+' root-servers at the system resolver.')
-		print('ERROR: Please use another resolver; Exiting.')
-except Exception as e:
-	print('ERROR: Resolver test failed with '+str(e))
-	sys.exit(2)
+			if dns_resolver:
+				print('ERROR: Found only ' + str(len(res_servers)) + '/' + str(len(root_servers)) + ' root-servers at: ' + dns_resolver)
+			else:
+				print('ERROR: Found only ' + str(len(res_servers)) + '/' + str(len(root_servers)) + ' root-servers at the system resolver.')
+			print('ERROR: Please use another resolver; Exiting.')
+	except Exception as e:
+		print('ERROR: Resolver test failed with ' + str(e))
+		sys.exit(2)
 
-universities = {}
-print_debug('INFO: Generating universities dictionary')
-universities[base_domain] = {'name': base_domain, 'domains': [base_domain], 'mail_domains': {}, 'lms_domains': {}, 'other_domains': {}, 'web_domains': {}, 'vid_domains': {}}
-for ad in add_domains:
-	universities[base_domain]['domains'].append(ad)
-for md in mail_domains:
-	universities[base_domain]['mail_domains'][md] = {'hosted_at': '', 'mx': [], 'comment': ''}
-for ld in lms_domains:
-	universities[base_domain]['lms_domains'][ld] = {'hosted_at': '', 'ips': [], 'comment': ''}
-for od in other_domains:
-	universities[base_domain]['other_domains'][od] = {'hosted_at': '', 'ips': [], 'comment': ''}
-for wd in universities[base_domain]['domains']:
-	universities[base_domain]['web_domains'][wd] = {'hosted_at': '', 'ips': [], 'comment': ''}
-	universities[base_domain]['web_domains']['www.'+wd] = {'hosted_at': '', 'ips': [], 'comment': ''}
-for vd in universities[base_domain]['domains']:
-	universities[base_domain]['vid_domains'][vd] = {'hosted_at': '', 'ips': [], 'comment': ''}
+	return the_resolver
 
-print_debug('INFO: Generated university dictionary: '+json.dumps(universities))
+
+dns_resolver = args.dns_resolver
+res = get_resolver(dns_resolver)
 
 
 def check_mail_domains(mail_dom):
@@ -316,7 +283,7 @@ def res_to_ip(name):
 	ret = {}
 	name = name.strip('.')
 	try:
-		r = res.query(name, 'CNAME')
+		r = res.resolve(name, 'CNAME')
 		for cn in r:
 			ret[name], ips = res_to_ip(str(cn.to_text()))
 		return ret, ips
@@ -324,14 +291,14 @@ def res_to_ip(name):
 		ret = {name: {'A':{}, 'AAAA':{}}}
 		ips = []
 		try:
-			r = res.query(name, 'A')
+			r = res.resolve(name, 'A')
 			for a in r:
 				ret[name]['A'][str(a.to_text())] = get_as_data_stub(str(a.to_text()))
 				ips.append(str(a.to_text()))
 		except Exception as e:
 			pass
 		try:
-			r = res.query(name, 'AAAA')
+			r = res.resolve(name, 'AAAA')
 			for aaaa in r:
 				ret[name]['AAAA'][str(aaaa.to_text())] = get_as_data_stub(str(aaaa.to_text()))
 				ips.append(str(aaaa.to_text()))
@@ -610,7 +577,7 @@ def check_vid_domains(uni_dom):
 		print_debug('INFO: Getting TXT records for '+d)
 		txt_record = []
 		try:
-			r = res.query(d, 'TXT')
+			r = res.resolve(d, 'TXT')
 			for txt in r:
 				txt_record.append(txt.to_text())
 			print_debug('INFO: Got TXT record for '+d+': '+str(txt_record))
@@ -708,7 +675,51 @@ def check_vid_domains(uni_dom):
 
 
 def main():
-	global universities
+
+	base_domain = args.domain
+	whois = args.whois
+	vid_check = args.vid_check
+	web_check = args.web_check
+	cache_file = args.cache_file
+
+	if args.add_domains:
+		add_domains = [item for sublist in args.add_domains for item in sublist]
+	else:
+		add_domains = []
+	if args.mail_domains:
+		mail_domains = [item for sublist in args.mail_domains for item in sublist]
+	else:
+		mail_domains = []
+	if args.lms_domains:
+		lms_domains = [item for sublist in args.lms_domains for item in sublist]
+	else:
+		lms_domains = []
+	if args.other_domains:
+		other_domains = [item for sublist in args.other_domains for item in sublist]
+	else:
+		other_domains = []
+
+	universities = {}
+	print_debug('INFO: Generating universities dictionary')
+	universities[base_domain] = {'name': base_domain, 'domains': [base_domain], 'mail_domains': {}, 'lms_domains': {},
+								'other_domains': {}, 'web_domains': {}, 'vid_domains': {}
+								}
+	for ad in add_domains:
+		universities[base_domain]['domains'].append(ad)
+	for md in mail_domains:
+		universities[base_domain]['mail_domains'][md] = {'hosted_at': '', 'mx': [], 'comment': ''}
+	for ld in lms_domains:
+		universities[base_domain]['lms_domains'][ld] = {'hosted_at': '', 'ips': [], 'comment': ''}
+	for od in other_domains:
+		universities[base_domain]['other_domains'][od] = {'hosted_at': '', 'ips': [], 'comment': ''}
+	for wd in universities[base_domain]['domains']:
+		universities[base_domain]['web_domains'][wd] = {'hosted_at': '', 'ips': [], 'comment': ''}
+		universities[base_domain]['web_domains']['www.' + wd] = {'hosted_at': '', 'ips': [], 'comment': ''}
+	for vd in universities[base_domain]['domains']:
+		universities[base_domain]['vid_domains'][vd] = {'hosted_at': '', 'ips': [], 'comment': ''}
+
+	print_debug('INFO: Generated university dictionary: ' + json.dumps(universities))
+
 	use_cache = False
 	if cache_file:
 		if os.path.isfile(cache_file):
