@@ -15,10 +15,12 @@ psl = PublicSuffixList()
 
 DEBUG = False
 
+
 # Debug printing
 def print_debug(s):
 	if DEBUG:
 		print(str(s))
+
 
 IP_ADDR_LIST = {}
 
@@ -208,6 +210,7 @@ def check_mail_domains(mail_dom):
 			mail_dom[d]['hosted_at'] = list(set(mail_dom[d]['hosted_at']))
 	return mail_dom
 
+
 def get_as_data_cymru():
 	HOST = "whois.cymru.com"
 	PORT = 43
@@ -251,10 +254,11 @@ def get_as_data_cymru():
 			except:
 				pass
 
-#		s.sendall(b"end\n")
-#		data_raw = ''
-#		while  not data_raw == SFX:
-#
+		# s.sendall(b"end\n")
+		# data_raw = ''
+		# while  not data_raw == SFX:
+		#
+
 
 def get_as_data():
 	HOST = "bttf-whois.as59645.net"
@@ -295,14 +299,17 @@ def get_as_data():
 			except:
 				pass
 
+
 def store_ip_dict(ip, d):
 	global IP_ADDR_LIST
 	IP_ADDR_LIST[ip] = d
+
 
 def get_as_data_stub(ip):
 	d = {'ASN':0 , 'AS-NAME':'No Data Found for IP'}
 	store_ip_dict(ip, d)
 	return d
+
 
 def res_to_ip(name):
 	ret = {}
@@ -330,6 +337,7 @@ def res_to_ip(name):
 		except Exception as e:
 			pass
 		return ret, ips
+
 
 def check_lms_domains(lms_dom, u_domains):
 	print_debug('INFO: Running '+json.dumps(lms_dom))
@@ -375,6 +383,7 @@ def check_lms_domains(lms_dom, u_domains):
 		lms_dom[d]['hosted_at'] = list(set(lms_dom[d]['hosted_at']))
 	print_debug('INFO: Returning lms_dom: '+json.dumps(lms_dom))
 	return lms_dom
+
 
 def set_hosted_at(dom_set):
 	global IP_ADDR_LIST
@@ -554,6 +563,7 @@ def print_univ_data(univ):
 		print('###################################')
 		print()
 
+
 def get_saml_value(text):
 	r = re.compile(r'name="SAMLRequest"[^>]+value=.([^\'"]+)')
 	a = re.compile(r'form[^<]+action=.([^\'"]+)')
@@ -563,6 +573,7 @@ def get_saml_value(text):
 		return r_v, a_v
 	except (ET.ParseError, UnicodeEncodeError):
 		return None, None
+
 
 def check_vid_domains(uni_dom):
 	ret = {}
@@ -641,7 +652,7 @@ def check_vid_domains(uni_dom):
 
 				except Exception as e:
 					print_debug('WARNING: Failed to get login data from '+site_url+': '+str(e))
-#				print_debug('INFO: WebEx Host Found: '+json.dumps(ret[d][fqdn]))
+				# print_debug('INFO: WebEx Host Found: '+json.dumps(ret[d][fqdn]))
 
 		# webex
 		for fqdn in test_names_rs['webex']:
@@ -693,6 +704,7 @@ def check_vid_domains(uni_dom):
 						ret[d][fqdn]['likelyhood'].append('txtconfirm')
 				print_debug('INFO: Msft Host Found: '+json.dumps(ret[d][fqdn]))
 	return ret
+
 
 use_cache = False
 if cache_file:
