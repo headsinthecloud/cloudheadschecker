@@ -11,7 +11,6 @@ import dns.resolver
 import requests
 from publicsuffixlist import PublicSuffixList
 
-res = None
 DEBUG = False
 IP_ADDR_LIST = {}
 
@@ -115,8 +114,7 @@ def get_resolver(dns_resolver):
     return the_resolver
 
 
-def check_mail_domains(mail_dom):
-    global res
+def check_mail_domains(res, mail_dom):
 
     for d in mail_dom:
         print('# Getting mail data for', d)
@@ -154,7 +152,7 @@ def check_mail_domains(mail_dom):
         except:
             pass
         for mx in mail_dom[d]['mx']:
-            ipdata, ips = res_to_ip(mx)
+            ipdata, ips = res_to_ip(res, mx)
             mail_dom[d]['ips'].append(ipdata)
             mail_dom[d]['ips_list'] += ips
             if 'google' in mx or 'gmail' in mx:
@@ -288,13 +286,13 @@ def get_as_data_stub(ip):
     return d
 
 
-def res_to_ip(name):
+def res_to_ip(res, name):
     ret = {}
     name = name.strip('.')
     try:
         r = res.resolve(name, 'CNAME')
         for cn in r:
-            ret[name], ips = res_to_ip(str(cn.to_text()))
+            ret[name], ips = res_to_ip(res, str(cn.to_text()))
         return ret, ips
     except Exception as e:
         ret = {name: {'A': {}, 'AAAA': {}}}
@@ -316,7 +314,7 @@ def res_to_ip(name):
         return ret, ips
 
 
-def check_lms_domains(lms_dom, u_domains):
+def check_lms_domains(res, lms_dom, u_domains):
     print_debug('INFO: Running ' + json.dumps(lms_dom))
     psl = PublicSuffixList()
     for d in lms_dom:
@@ -324,7 +322,7 @@ def check_lms_domains(lms_dom, u_domains):
         lms_dom[d]['provider'] = []
         lms_dom[d]['hosted_at'] = []
         lms_dom[d]['ips_list'] = []
-        tmp_dict, ips = res_to_ip(d)
+        tmp_dict, ips = res_to_ip(res, d)
         print_debug('INFO: For ' + str(ips) + ' received ' + json.dumps(tmp_dict))
         lms_dom[d]['ips_list'] += ips
         lms_dom[d]['ips'].append(tmp_dict)
@@ -557,7 +555,7 @@ def get_saml_value(text):
         return None, None
 
 
-def check_vid_domains(uni_dom):
+def check_vid_domains(res, uni_dom):
     psl = PublicSuffixList()
     ret = {}
     for d in uni_dom:
@@ -601,7 +599,7 @@ def check_vid_domains(uni_dom):
 
         # zoom
         for fqdn in test_names_rs['zoom']:
-            ip, iplist = res_to_ip(fqdn)
+            ip, iplist = res_to_ip(res, fqdn)
             if iplist:
                 ret[d][fqdn] = {'hosted_at': [], 'ips': [ip], "provider": ['zoom'], 'ips_list': iplist, 'likelyhood': ['domconfirm']}
                 for txtrr in txt_record:
@@ -639,7 +637,7 @@ def check_vid_domains(uni_dom):
 
         # webex
         for fqdn in test_names_rs['webex']:
-            ip, iplist = res_to_ip(fqdn)
+            ip, iplist = res_to_ip(res, fqdn)
             if iplist:
                 ret[d][fqdn] = {'hosted_at': [], 'ips': [ip], "provider": ['webex'], 'ips_list': iplist, 'likelyhood': ['domconfirm']}
                 # https://tue.webex.com/webappng/api/v1/brand4Support?siteurl=tue
@@ -660,7 +658,7 @@ def check_vid_domains(uni_dom):
 
         # bbb
         for fqdn in test_names_rs['bbb']:
-            ip, iplist = res_to_ip(fqdn)
+            ip, iplist = res_to_ip(res, fqdn)
             if iplist:
                 ret[d][fqdn] = {'hosted_at': [], 'ips': [ip], "provider": ['bbb'], 'ips_list': iplist, 'likelyhood': ['domconfirm']}
                 site_name = fqdn.split('.')[0]
@@ -679,7 +677,7 @@ def check_vid_domains(uni_dom):
 
         # SfB
         for fqdn in test_names_rs['msft']:
-            ip, iplist = res_to_ip(fqdn)
+            ip, iplist = res_to_ip(res, fqdn)
             if iplist:
                 ret[d][fqdn] = {'hosted_at': [], 'ips': [ip], "provider": ['msft'], 'ips_list': iplist, 'likelyhood': ['domconfirm']}
                 for txtrr in txt_record:
@@ -690,7 +688,6 @@ def check_vid_domains(uni_dom):
 
 
 def main():
-    global res
 
     args = parse_args()
 
@@ -699,9 +696,8 @@ def main():
     vid_check = args.vid_check
     web_check = args.web_check
     cache_file = args.cache_file
-    dns_resolver = args.dns_resolver
 
-    res = get_resolver(dns_resolver)
+    resolver = get_resolver(args.dns_resolver)
 
     if args.add_domains:
         add_domains = [item for sublist in args.add_domains for item in sublist]
@@ -752,15 +748,15 @@ def main():
     else:
         print_debug('INFO: no cache found; Querying data.')
         for u in universities:
-            universities[u]['mail_domains'] = check_mail_domains(universities[u]['mail_domains'])
-            universities[u]['lms_domains'] = check_lms_domains(universities[u]['lms_domains'], universities[u]['domains'])
-            universities[u]['other_domains'] = check_lms_domains(universities[u]['other_domains'], universities[u]['domains'])
+            universities[u]['mail_domains'] = check_mail_domains(resolver, universities[u]['mail_domains'])
+            universities[u]['lms_domains'] = check_lms_domains(resolver, universities[u]['lms_domains'], universities[u]['domains'])
+            universities[u]['other_domains'] = check_lms_domains(resolver, universities[u]['other_domains'], universities[u]['domains'])
             if not web_check:
-                universities[u]['web_domains'] = check_lms_domains(universities[u]['web_domains'], universities[u]['domains'])
+                universities[u]['web_domains'] = check_lms_domains(resolver, universities[u]['web_domains'], universities[u]['domains'])
             else:
                 universities[u]['web_domains'] = {}
             if not vid_check:
-                universities[u]['vid_domains'] = check_vid_domains(universities[u]['domains'])
+                universities[u]['vid_domains'] = check_vid_domains(resolver, universities[u]['domains'])
             else:
                 universities[u]['vid_domains'] = {}
         if whois == 'cymru':
