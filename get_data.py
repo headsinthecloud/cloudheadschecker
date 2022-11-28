@@ -13,8 +13,9 @@ import re
 from publicsuffixlist import PublicSuffixList
 psl = PublicSuffixList()
 
+res = None
 DEBUG = False
-
+IP_ADDR_LIST = {}
 
 # Debug printing
 def print_debug(s):
@@ -22,27 +23,38 @@ def print_debug(s):
 		print(str(s))
 
 
-IP_ADDR_LIST = {}
+def parse_args():
+	global DEBUG
+	# Parsing arguments
+	parser = argparse.ArgumentParser()
+	parser.add_argument('domain', help='Base domain of the university, e.g.: example.com; Required argument.')
+	parser.add_argument('--dns-resolver', help="Explicit DNS resolver to use, defaults to system resolver. e.g.: 141.1.1.1", dest='dns_resolver')
+	parser.add_argument('--whois', help="Bulk-Whois service to use. Possible options are 'cymru' and 'as59645'. Defaults to 'as59645'.", dest='whois')
+	parser.add_argument('--debug', help="Print verbose output for debugging.", dest='debug', action="store_true")
+	parser.add_argument(
+		'-d', help='Additinal domains of the university; Can receive multiple arguments, e.g.: example.ac.com example.net', dest='add_domains', action='append',
+		nargs='+'
+		)
+	parser.add_argument(
+		'-m', help='Mail domains of the university; Can receive multiple arguments, e.g.: example.com', dest='mail_domains', action='append', nargs='+'
+		)
+	parser.add_argument(
+		'-l', help='LMS names of the university; Can receive multiple arguments, e.g.: canvas.example.com', dest='lms_domains', action='append', nargs='+'
+		)
+	parser.add_argument(
+		'-o', help='Other names of the university; Can receive multiple arguments, e.g.: survey.cs.example.com', dest='other_domains', action='append',
+		nargs='+'
+		)
+	parser.add_argument('-z', help='Disable check for usage of Video-Chat solutions (Zoom, WebEx, BBB, etc.)', dest='vid_check', action='store_true')
+	parser.add_argument('-w', help='Disable check base-domain/www. website hosting.', dest='web_check', action='store_true')
+	parser.add_argument('--cache-file', help='Write full data to this file.', dest='cache_file')
 
-# Parsing arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('domain', help='Base domain of the university, e.g.: example.com; Required argument.')
-parser.add_argument('--dns-resolver', help="Explicit DNS resolver to use, defaults to system resolver. e.g.: 141.1.1.1", dest='dns_resolver')
-parser.add_argument('--whois', help="Bulk-Whois service to use. Possible options are 'cymru' and 'as59645'. Defaults to 'as59645'.", dest='whois')
-parser.add_argument('--debug', help="Print verbose output for debugging.", dest='debug', action="store_true")
-parser.add_argument('-d', help='Additinal domains of the university; Can receive multiple arguments, e.g.: example.ac.com example.net', dest='add_domains', action='append', nargs='+')
-parser.add_argument('-m', help='Mail domains of the university; Can receive multiple arguments, e.g.: example.com', dest='mail_domains', action='append', nargs='+')
-parser.add_argument('-l', help='LMS names of the university; Can receive multiple arguments, e.g.: canvas.example.com', dest='lms_domains', action='append', nargs='+')
-parser.add_argument('-o', help='Other names of the university; Can receive multiple arguments, e.g.: survey.cs.example.com', dest='other_domains', action='append', nargs='+')
-parser.add_argument('-z', help='Disable check for usage of Video-Chat solutions (Zoom, WebEx, BBB, etc.)', dest='vid_check', action='store_true')
-parser.add_argument('-w', help='Disable check base-domain/www. website hosting.', dest='web_check', action='store_true')
-parser.add_argument('--cache-file', help='Write full data to this file.', dest='cache_file')
+	args = parser.parse_args()
+	DEBUG = args.debug
 
-args = parser.parse_args()
-DEBUG = args.debug
-
-print_debug('INFO: Parsing arguments:')
-print_debug('INFO: '+str(args))
+	print_debug('INFO: Parsing arguments:')
+	print_debug('INFO: ' + str(args))
+	return args
 
 
 def get_resolver(dns_resolver):
@@ -104,8 +116,6 @@ def get_resolver(dns_resolver):
 	return the_resolver
 
 
-dns_resolver = args.dns_resolver
-res = get_resolver(dns_resolver)
 
 
 def check_mail_domains(mail_dom):
@@ -675,12 +685,18 @@ def check_vid_domains(uni_dom):
 
 
 def main():
+	global res
+
+	args = parse_args()
 
 	base_domain = args.domain
 	whois = args.whois
 	vid_check = args.vid_check
 	web_check = args.web_check
 	cache_file = args.cache_file
+	dns_resolver = args.dns_resolver
+
+	res = get_resolver(dns_resolver)
 
 	if args.add_domains:
 		add_domains = [item for sublist in args.add_domains for item in sublist]
