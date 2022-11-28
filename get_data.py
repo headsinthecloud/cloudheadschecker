@@ -6,6 +6,7 @@ import os
 import re
 import socket
 import sys
+from json import JSONDecodeError
 
 import dns.resolver
 import requests
@@ -68,8 +69,8 @@ def get_resolver(dns_resolver):
         try:
             the_resolver = dns.resolver.Resolver(configure=False)
             the_resolver.nameservers = [dns_resolver]
-        except:
-            sys.exit('ERROR: Could not set resolver ' + str(dns_resolver))
+        except Exception as ex:
+            sys.exit('ERROR: Could not set resolver ' + str(dns_resolver) + str(ex))
 
     # Test resolver
     try:
@@ -196,39 +197,42 @@ def get_as_data_cymru():
     print_debug('INFO: Using Team Cymru Bulk Whois')
 
     global IP_ADDR_LIST
-    
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        # data = s.recv(1024)
-        fs = s.makefile()
-        rdy = False
-        print_debug('INFO: Sending Begin')
-        s.sendall(b"begin\n")
-        print_debug('INFO: Waiting for RDY')
-        while not rdy:
-            line = fs.readline()
-            print_debug('INFO: Waiting for RDY, read: ' + line.strip())
-            if RDY in line.strip():
-                print_debug('INFO: ' + RDY + ' found in string; We are ready!')
-                rdy = True
-        print_debug('INFO: Requesting IPs')
-        for ip in IP_ADDR_LIST:
-            s.sendall((ip + DT + "\n").encode('utf-8'))
-            data_raw = fs.readline().strip()
-            print_debug('INFO: read: ' + data_raw)
-            try:
-                split_data = data_raw.split('|')
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            # data = s.recv(1024)
+            fs = s.makefile()
+            rdy = False
+            print_debug('INFO: Sending Begin')
+            s.sendall(b"begin\n")
+            print_debug('INFO: Waiting for RDY')
+            while not rdy:
+                line = fs.readline()
+                print_debug('INFO: Waiting for RDY, read: ' + line.strip())
+                if RDY in line.strip():
+                    print_debug('INFO: ' + RDY + ' found in string; We are ready!')
+                    rdy = True
+            print_debug('INFO: Requesting IPs')
+            for ip in IP_ADDR_LIST:
+                s.sendall((ip + DT + "\n").encode('utf-8'))
+                data_raw = fs.readline().strip()
+                print_debug('INFO: read: ' + data_raw)
                 try:
-                    d = {'ASN': split_data[0].strip(), 'AS-NAME': split_data[2].strip().split()[0]}
-                except Exception as e:
-                    print_debug('WARNING: request failed with ' + str(e))
-                    d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
+                    split_data = data_raw.split('|')
+                    try:
+                        d = {'ASN': split_data[0].strip(), 'AS-NAME': split_data[2].strip().split()[0]}
+                    except Exception as e:
+                        print_debug('WARNING: request failed with ' + str(e))
+                        d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
 
-                IP_ADDR_LIST[ip]['ASN'] = d['ASN']
-                IP_ADDR_LIST[ip]['AS-NAME'] = d['AS-NAME'].strip(',')
-            except (IOError, OSError) as ose:
-                pass
+                    IP_ADDR_LIST[ip]['ASN'] = d['ASN']
+                    IP_ADDR_LIST[ip]['AS-NAME'] = d['AS-NAME'].strip(',')
+                except (ValueError, KeyError) as ose:
+                    sys.exit(f'Error querying Team Cymru Bulk Whois: {ose}')
 
+    except (socket.error, IOError, OSError) as ose:
+        sys.exit(f'Error querying Team Cymru Bulk Whois: {ose}')
 
     # s.sendall(b"end\n")
     # data_raw = ''
@@ -246,43 +250,42 @@ def get_as_data():
     print_debug('INFO: Using AS59645 Bulk Whois; Selected date:' + DT)
 
     global IP_ADDR_LIST
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.connect((HOST, PORT))
-        # data = s.recv(1024)
-        fs = s.makefile()
-        rdy = False
-        while not rdy:
-            l = fs.readline()
-            if l.strip() == RDY:
-                rdy = True
-        s.sendall(b"begin\n")
-        for ip in IP_ADDR_LIST:
-            s.sendall((ip + DT + "\n").encode('utf-8'))
-        s.sendall(b"end\n")
-        data_raw = ''
-        while not data_raw == SFX:
-            data_raw = fs.readline().strip()
-            try:
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((HOST, PORT))
+            # data = s.recv(1024)
+            fs = s.makefile()
+            rdy = False
+            while not rdy:
+                line = fs.readline()
+                if line.strip() == RDY:
+                    rdy = True
+            s.sendall(b"begin\n")
+            for ip in IP_ADDR_LIST:
+                s.sendall((ip + DT + "\n").encode('utf-8'))
+            s.sendall(b"end\n")
+            data_raw = ''
+            while not data_raw == SFX:
+                data_raw = fs.readline().strip()
+
                 data = json.loads(data_raw)
-                d = {}
                 if data['results']:
                     d = {'ASN': data['results']['asns'][0], 'AS-NAME': data['results']['as2org'][0]['ASNAME']}
                 else:
                     d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
                 IP_ADDR_LIST[data['IP']]['ASN'] = d['ASN']
                 IP_ADDR_LIST[data['IP']]['AS-NAME'] = d['AS-NAME'].strip(',')
-            except:
-                pass
 
-
-def store_ip_dict(ip, d):
-    global IP_ADDR_LIST
-    IP_ADDR_LIST[ip] = d
+    except (socket.error, IOError, OSError, JSONDecodeError) as ose:
+        sys.exit(f'Error querying AS59645 Bulk Whois: {ose}')
 
 
 def get_as_data_stub(ip):
-    d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
-    store_ip_dict(ip, d)
+    global IP_ADDR_LIST
+    d = IP_ADDR_LIST.get(ip)
+    if d is None:
+        d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
+        IP_ADDR_LIST[ip] = d
     return d
 
 
