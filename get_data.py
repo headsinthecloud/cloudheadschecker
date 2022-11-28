@@ -707,45 +707,51 @@ def check_vid_domains(uni_dom):
 	return ret
 
 
-use_cache = False
-if cache_file:
-	if os.path.isfile(cache_file):
-		use_cache = True
-		print_debug('INFO: '+cache_file+' found; Using cache.')
-
-if use_cache:
-	universities = json.loads(open('./data.json').read().strip())
-else:
-	print_debug('INFO: no cache found; Querying data.')
-	for u in universities:
-		universities[u]['mail_domains'] = check_mail_domains(universities[u]['mail_domains'])
-		universities[u]['lms_domains'] = check_lms_domains(universities[u]['lms_domains'], universities[u]['domains'])
-		universities[u]['other_domains'] = check_lms_domains(universities[u]['other_domains'], universities[u]['domains'])
-		if not web_check:
-			universities[u]['web_domains'] = check_lms_domains(universities[u]['web_domains'], universities[u]['domains'])
-		else:
-			universities[u]['web_domains'] = {}
-		if not vid_check:
-			universities[u]['vid_domains'] = check_vid_domains(universities[u]['domains'])
-		else:
-			universities[u]['vid_domains'] = {}
-	if whois == 'cymru':
-		get_as_data_cymru()
-	else:
-		get_as_data()
-	for u in universities:
-		universities[u]['mail_domains'] = set_hosted_at(universities[u]['mail_domains'])
-		universities[u]['lms_domains'] = set_hosted_at(universities[u]['lms_domains'])
-		universities[u]['other_domains'] = set_hosted_at(universities[u]['other_domains'])
-		if not web_check:
-			universities[u]['web_domains'] = set_hosted_at(universities[u]['web_domains'])
-		if not vid_check:
-			for vdom in universities[u]['vid_domains']:
-				universities[u]['vid_domains'][vdom] = set_hosted_at(universities[u]['vid_domains'][vdom])
+def main():
+	global universities
+	use_cache = False
 	if cache_file:
-		of = open(cache_file,'w+')
-		of.write(json.dumps(universities)+'\n')
-		of.close()
+		if os.path.isfile(cache_file):
+			use_cache = True
+			print_debug('INFO: ' + cache_file + ' found; Using cache.')
+	if use_cache:
+		universities = json.loads(open('./data.json').read().strip())
+	else:
+		print_debug('INFO: no cache found; Querying data.')
+		for u in universities:
+			universities[u]['mail_domains'] = check_mail_domains(universities[u]['mail_domains'])
+			universities[u]['lms_domains'] = check_lms_domains(universities[u]['lms_domains'], universities[u]['domains'])
+			universities[u]['other_domains'] = check_lms_domains(universities[u]['other_domains'], universities[u]['domains'])
+			if not web_check:
+				universities[u]['web_domains'] = check_lms_domains(universities[u]['web_domains'], universities[u]['domains'])
+			else:
+				universities[u]['web_domains'] = {}
+			if not vid_check:
+				universities[u]['vid_domains'] = check_vid_domains(universities[u]['domains'])
+			else:
+				universities[u]['vid_domains'] = {}
+		if whois == 'cymru':
+			get_as_data_cymru()
+		else:
+			get_as_data()
+		for u in universities:
+			universities[u]['mail_domains'] = set_hosted_at(universities[u]['mail_domains'])
+			universities[u]['lms_domains'] = set_hosted_at(universities[u]['lms_domains'])
+			universities[u]['other_domains'] = set_hosted_at(universities[u]['other_domains'])
+			if not web_check:
+				universities[u]['web_domains'] = set_hosted_at(universities[u]['web_domains'])
+			if not vid_check:
+				for vdom in universities[u]['vid_domains']:
+					universities[u]['vid_domains'][vdom] = set_hosted_at(universities[u]['vid_domains'][vdom])
+		if cache_file:
+			of = open(cache_file, 'w+')
+			of.write(json.dumps(universities) + '\n')
+			of.close()
+	print_univ_data(universities)
 
 
-print_univ_data(universities)
+if __name__ == '__main__':
+	try:
+		main()
+	except KeyboardInterrupt:
+		pass
