@@ -1,5 +1,12 @@
 # Intro
-This small tool allows you to check key-aspects of a university's infrastructure for cloud hosting.
+For the historic perspective from our paper "Heads in the Clouds? Measuring Universities’ Migration to Public Clouds: Implications for Privacy & Academic Freedom", we used a large passive dataset. 
+As this passive dataset cannot be publicly shared, we implemented a small script that gathers the data we are looking at actively, i.e., 'as of now'.
+Please note that this means that differences to the last state of our passive dataset (October 2022) may occur.
+Furthermore, you need to have a-priori knowledge of:
+1. All domains used by a university
+2. Domains used for email by a university (the part behind the `@`)
+3. The domain used for the learning management system (like `canvas.example.com` or `brightspace.example.com`)
+
 See *Usage* for a detailed usage. Example invocation:
 ```
 cloudheadschecker example.com -d example-university.edu -m students.example.com faculty.example.com example.com -l canvas.example.com -o hr-service.example.com --cache-file example-university-data.json
@@ -12,17 +19,17 @@ Finally, all data should be written to `example-university-data.json`.
 
 # Installation
 
-You can install cloudheadschecker in the following ways:
+You can install cloudheadschecker manually, with pip, or you can run it with docker (pre-built and self-built images):
 
 First, you should clone the repository:
 ```
-git clone [...]
+git clone https://github.com/headsinthecloud/cloudheadschecker
 ```
 
 ## Manual
 To manually install cloudheadschecker, run:
 ```
-cd repository_path/
+cd cloudheadschecker/
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
@@ -31,13 +38,28 @@ pip install -r requirements.txt
 ## pip
 Usign `pip`, after checking out the repository, you should run:
 ```
-cd repository_path/
+cd cloudheadschecker/
 ./make_dist.sh
 pip install dist/cloudheadschecker-0.0.1.tar.gz
 ```
 
-## Docker
+## Docker (pre-built images)
 To run cloudheadschecker using docker, run:
+```
+cd cloudheadschecker/Docker/
+docker load -i  cloudheadschecker.tgz
+docker run -it --rm cloudheadschecker cloudheadschecker [ARGUMENTS]
+```
+
+## Docker (self-built images)
+To run cloudheadschecker using docker and a self-built image run:
+```
+cd cloudheadschecker/
+./make_dist.sh
+cd Docker/
+./build.sh
+docker run -it --rm cloudheadschecker cloudheadschecker [ARGUMENTS]
+```
 
 # Usage
 ```
