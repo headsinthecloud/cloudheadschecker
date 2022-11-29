@@ -17,13 +17,16 @@ The LMS is at `canvas.example.com`.
 Additionally, `hr-service.example.com` should be checked for cloud hosting.
 Finally, all data should be written to `example-university-data.json`.
 
+# University Data
+You can find an overview of university domains here: https://git.aperture-labs.org/Cloudheads/universities
+
 # Installation
 
 You can install cloudheadschecker manually, with pip, or you can run it in Docker (pre-built and self-built images):
 
 First, you should clone the repository:
 ```
-git clone https://github.com/headsinthecloud/cloudheadschecker
+git clone https://git.aperture-labs.org/Cloudheads/cloudheadschecker
 ```
 
 ## using pip
