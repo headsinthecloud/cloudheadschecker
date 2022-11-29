@@ -19,31 +19,56 @@ Finally, all data should be written to `example-university-data.json`.
 
 # Installation
 
-You can install cloudheadschecker manually, with pip, or you can run it with docker (pre-built and self-built images):
+You can install cloudheadschecker manually, with pip, or you can run it in Docker (pre-built and self-built images):
 
 First, you should clone the repository:
 ```
 git clone https://github.com/headsinthecloud/cloudheadschecker
 ```
 
-## Manual
-To manually install cloudheadschecker, run:
-```
-cd cloudheadschecker/
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+## using pip
 
-## pip
-Usign `pip`, after checking out the repository, you should run:
+You can choose to use the source dist in the Docker/pkg directory or build the python package yourself.
+
+To build a fresh python package from the repository, after cloning the repository run:
+
 ```
 cd cloudheadschecker/
 ./make_dist.sh
+```
+
+You will now find a source and binary distribution in the subdirectory dist/
+
+Alternatively you can use the source distribution we provide in the Docker/pkg directory for convinience.
+
+We recommend installing the python package either in a virtual environment or a users home.
+
+### Virtual Environment
+
+A new virtual environment containing the tool is created with these steps:
+
+```
+cd cloudheadschecker/
+./make_dist.sh
+python -m venv venv
+source venv/bin/activate
 pip install dist/cloudheadschecker-0.0.1.tar.gz
 ```
 
-## Docker (pre-built images)
+### Installation in users home
+
+Alternatively the tool and its wrapper script can be installed in a users home as follows:
+
+```
+cd cloudheadschecker/
+./make_dist.sh
+pip install --user dist/cloudheadschecker-0.0.1.tar.gz
+```
+again, the file Docker/pkg/cloudheadschecker-0.0.1.tar.gz can be used alternatively
+
+
+## Docker (pre-built image)
+
 To run cloudheadschecker using docker, run:
 ```
 cd cloudheadschecker/Docker/
@@ -51,11 +76,20 @@ docker load -i  cloudheadschecker.tgz
 docker run -it --rm cloudheadschecker cloudheadschecker [ARGUMENTS]
 ```
 
-## Docker (self-built images)
-To run cloudheadschecker using docker and a self-built image run:
+Omitting the start command will drop you to a shell inside the container, where the command cloudheadschecker is available.
+
+## Docker (self-built image)
+
+You can choose to recreate the python package as well, or skip this step and the build script will use a provided file from the repository.
 ```
 cd cloudheadschecker/
 ./make_dist.sh
+cp dist/cloudheadschecker-0.0.1.tar.gz Docker/pkg/
+```
+
+To run cloudheadschecker using docker and a self-built image, then run:
+
+```
 cd Docker/
 ./build.sh
 docker run -it --rm cloudheadschecker cloudheadschecker [ARGUMENTS]
