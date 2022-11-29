@@ -165,6 +165,8 @@ def check_mail_domains(res, mail_dom):
                 mail_dom[d]['provider'].append('microsoft')
             if 'surfmailfilter' in mx or 'surf.net' in mx:
                 mail_dom[d]['provider'].append('surf')
+            if 'pphosted.com' in mx:
+                mail_dom[d]['provider'].append('proofpoint')
         if mail_dom[d]['dmarc']['rua'] and 'proofpoint' not in mail_dom[d]['provider'] and 'proofpoint_appliance' not in mail_dom[d]['provider']:
             for rua in mail_dom[d]['dmarc']['rua']:
                 if 'proofpoint' in rua:
