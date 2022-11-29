@@ -167,7 +167,7 @@ $ cloudheadschecker stanford.edu -l canvas.stanford.edu -m cs.stanford.edu stanf
 # A 171.64.64.27 ASN:32 AS-NAME: STANFORD
 #-
 # Domain: stanford.edu
-# Provider(s): proofpoint_appliance
+# Provider(s): proofpoint
 # Hosted at: PROOFPOINT-ASN-US-WEST
 # DMARC reporting: rua=dmarc_ruf@emaildefense.proofpoint.com; ruf=dmarc_ruf@emaildefense.proofpoint.com
 # MXes: mxa-00000d03.gslb.pphosted.com., mxb-00000d03.gslb.pphosted.com.
