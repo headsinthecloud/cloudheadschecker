@@ -29,7 +29,14 @@ First, you should clone the repository:
 git clone https://git.aperture-labs.org/Cloudheads/cloudheadschecker
 ```
 
-## using pip
+## Using pypi
+You can install this package from pypi. Simply run:
+```
+pip install cloudheadschecker
+```
+This will instal the tool and all dependencies; Thereafter you will have `cloudheadschecker` in your `PATH` and can simply run it.
+
+## Using pip
 
 You can choose to use the source dist in the Docker/pkg directory or build the python package yourself.
 
@@ -55,7 +62,7 @@ cd cloudheadschecker/
 ./make_dist.sh
 python -m venv venv
 source venv/bin/activate
-pip install dist/cloudheadschecker-0.0.1.tar.gz
+pip install dist/cloudheadschecker-0.0.2.tar.gz
 ```
 
 ### Installation in users home
@@ -65,9 +72,9 @@ Alternatively the tool and its wrapper script can be installed in a users home a
 ```
 cd cloudheadschecker/
 ./make_dist.sh
-pip install --user dist/cloudheadschecker-0.0.1.tar.gz
+pip install --user dist/cloudheadschecker-0.0.2.tar.gz
 ```
-again, the file Docker/pkg/cloudheadschecker-0.0.1.tar.gz can be used alternatively
+again, the file Docker/pkg/cloudheadschecker-0.0.2.tar.gz can be used alternatively
 
 
 ## Docker (pre-built image)
@@ -87,7 +94,7 @@ You can choose to recreate the python package as well, or skip this step and the
 ```
 cd cloudheadschecker/
 ./make_dist.sh
-cp dist/cloudheadschecker-0.0.1.tar.gz Docker/pkg/
+cp dist/cloudheadschecker-0.0.2.tar.gz Docker/pkg/
 ```
 
 To run cloudheadschecker using docker and a self-built image, then run:
