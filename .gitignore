@@ -1,1 +1,4 @@
 .*swp
+dist/*
+build/*
+cloudheadschecker.egg-info/*
