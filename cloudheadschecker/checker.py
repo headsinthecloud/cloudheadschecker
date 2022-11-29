@@ -132,13 +132,13 @@ def check_mail_domains(res, mail_dom):
             }
 
         try:
-            r = res.query(d, 'MX')
+            r = res.resolve(d, 'MX')
             for mx in r:
                 mail_dom[d]['mx'].append(str(mx.to_text()).split()[-1])
         except DNSException:
             pass
         try:
-            r = res.query('_dmarc.' + d, 'TXT')
+            r = res.resolve('_dmarc.' + d, 'TXT')
             for txt in r:
                 for v in str(txt.to_text()).split(';'):
                     if 'ruf' in v:
