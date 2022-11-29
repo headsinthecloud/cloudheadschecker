@@ -43,7 +43,7 @@ setuptools.setup(
         description="Checks for cloud services",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url="https://git.aperture-labs.org/Cloudheads/cloud-checker",
+        url="https://git.aperture-labs.org/Cloudheads/cloudheadschecker",
         setup_requires=['wheel'],
         packages=setuptools.find_packages(),
         classifiers=[

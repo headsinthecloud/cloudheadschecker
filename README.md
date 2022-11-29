@@ -62,7 +62,7 @@ cd cloudheadschecker/
 ./make_dist.sh
 python -m venv venv
 source venv/bin/activate
-pip install dist/cloudheadschecker-0.0.3.tar.gz
+pip install dist/cloudheadschecker-0.0.4.tar.gz
 ```
 
 ### Installation in users home
@@ -72,9 +72,9 @@ Alternatively the tool and its wrapper script can be installed in a users home a
 ```
 cd cloudheadschecker/
 ./make_dist.sh
-pip install --user dist/cloudheadschecker-0.0.3.tar.gz
+pip install --user dist/cloudheadschecker-0.0.4.tar.gz
 ```
-again, the file Docker/pkg/cloudheadschecker-0.0.3.tar.gz can be used alternatively
+again, the file Docker/pkg/cloudheadschecker-0.0.4.tar.gz can be used alternatively
 
 
 ## Docker (pre-built image)
@@ -94,7 +94,7 @@ You can choose to recreate the python package as well, or skip this step and the
 ```
 cd cloudheadschecker/
 ./make_dist.sh
-cp dist/cloudheadschecker-0.0.3.tar.gz Docker/pkg/
+cp dist/cloudheadschecker-0.0.4.tar.gz Docker/pkg/
 ```
 
 To run cloudheadschecker using docker and a self-built image, then run:
