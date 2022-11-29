@@ -225,7 +225,7 @@ def get_as_data_cymru():
                     try:
                         d = {'ASN': split_data[0].strip(), 'AS-NAME': split_data[2].strip().split()[0]}
                     except Exception as e:
-                        logger.warning('request failed with %s', str(e))
+                        logger.warning('cymru bulk whois request failed with %s', str(e))
                         d = {'ASN': 0, 'AS-NAME': 'No Data Found for IP'}
 
                     IP_ADDR_LIST[ip]['ASN'] = d['ASN']
@@ -601,7 +601,7 @@ def check_vid_domains(res, uni_dom):
                 txt_record.append(txt.to_text())
             logger.info('Got TXT record for %s: %s', d, str(txt_record))
         except Exception as e:
-            logger.warning('Could not get TXT record for %s: %s', d, str(e))
+            logger.info('Could not get TXT record for %s: %s', d, str(e))
 
         # zoom
         for fqdn in test_names_rs['zoom']:
@@ -623,8 +623,8 @@ def check_vid_domains(res, uni_dom):
                             if tmp_d in site_support_data:
                                 ret[d][fqdn]['likelyhood'].append('webconfirm')
                                 logger.info('found login reference for %s and domain %s', fqdn, tmp_d)
-                        else:
-                            logger.info('found no login reference for %s', fqdn)
+                            else:
+                                logger.warning('Could not verify %s belongs to %s via login information. Site may still be associated. Manual verification needed!', fqdn, d)
                     else:
                         v, a = get_saml_value(site_support_data_request.text)
                         # logger.info('SAMLdata: %s', v)
@@ -635,9 +635,11 @@ def check_vid_domains(res, uni_dom):
                             if tmp_d in req_saml_res:
                                 ret[d][fqdn]['likelyhood'].append('webconfirm')
                                 logger.info('found login reference for %s and domain %s', fqdn, tmp_d)
+                        if not 'webconfirm' in ret[d][fqdn]['likelyhood']:
+                            logger.warning('Could not verify %s belongs to %s via login information. Site may still be associated. Manual verification needed!', fqdn, d)
 
                 except Exception as e:
-                    logger.warning('Failed to get login data from %s: %s', site_url, str(e))
+                    logger.warning('Failed to get login data from %s; Site may still belong to %s, but needs manual verification: %s', site_url, d, str(e))
             # print_debug('INFO: WebEx Host Found: '+json.dumps(ret[d][fqdn]))
 
         # webex
@@ -655,10 +657,10 @@ def check_vid_domains(res, uni_dom):
                         if tmp_d in site_support_data:
                             ret[d][fqdn]['likelyhood'].append('webconfirm')
                             logger.info('found support reference for %s and domain %s', fqdn, tmp_d)
-                    else:
-                        logger.info('found no support reference for %s', fqdn)
+                        else:
+                            logger.warning('Could not verify %s belongs to %s via support information. Site may still be associated. Manual verification needed!', fqdn, d)
                 except Exception as e:
-                    logger.warning('Failed to get support data from %s: %s', site_url, str(e))
+                    logger.warning('Failed to get support data from %s; Site may still belong to %s, but needs manual verification: %s', site_url, d, str(e))
                 logger.info('WebEx Host Found: %s', json.dumps(ret[d][fqdn]))
 
         # bbb
@@ -672,12 +674,11 @@ def check_vid_domains(res, uni_dom):
                     # print_debug('INFO: '+site_support_data)
                     if 'BigBlueButton' in site_support_data:
                         ret[d][fqdn]['likelyhood'].append('webconfirm')
-                        logger.info('found support reference for %s', fqdn)
+                        logger.info('found BigBlueButton reference for %s', fqdn)
                     else:
-                        logger.info('found no support reference for %s', fqdn)
+                        logger.warning('Could not verify %s is BigBlueButton via login information. Site may still be associated. Manual verification needed!', fqdn)
                 except Exception as e:
-                    logger.warning('Failed to get support data from %s: %s', site_url, str(e))
-                logger.info('BBB Host Found: %s', json.dumps(ret[d][fqdn]))
+                    logger.warning('Failed to get BigBlueButton data from %s; Site may still belong to %s, but needs manual verification: %s', site_url, d, str(e))
 
         # SfB
         for fqdn in test_names_rs['msft']:
