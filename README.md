@@ -62,7 +62,7 @@ cd cloudheadschecker/
 ./make_dist.sh
 python -m venv venv
 source venv/bin/activate
-pip install dist/cloudheadschecker-0.0.2.tar.gz
+pip install dist/cloudheadschecker-0.0.3.tar.gz
 ```
 
 ### Installation in users home
@@ -72,9 +72,9 @@ Alternatively the tool and its wrapper script can be installed in a users home a
 ```
 cd cloudheadschecker/
 ./make_dist.sh
-pip install --user dist/cloudheadschecker-0.0.2.tar.gz
+pip install --user dist/cloudheadschecker-0.0.3.tar.gz
 ```
-again, the file Docker/pkg/cloudheadschecker-0.0.2.tar.gz can be used alternatively
+again, the file Docker/pkg/cloudheadschecker-0.0.3.tar.gz can be used alternatively
 
 
 ## Docker (pre-built image)
@@ -94,7 +94,7 @@ You can choose to recreate the python package as well, or skip this step and the
 ```
 cd cloudheadschecker/
 ./make_dist.sh
-cp dist/cloudheadschecker-0.0.2.tar.gz Docker/pkg/
+cp dist/cloudheadschecker-0.0.3.tar.gz Docker/pkg/
 ```
 
 To run cloudheadschecker using docker and a self-built image, then run:
@@ -149,108 +149,94 @@ optional arguments:
 
 # Example invocation:
 ```
-$ cloudheadschecker stanford.edu -l canvas.stanford.edu -m cs.stanford.edu stanford.edu -o gradadmissions.stanford.edu 
-# Getting mail data for cs.stanford.edu
-# Getting mail data for stanford.edu
+# Getting mail data for tudelft.nl
+# Getting mail data for student.tudelft.nl
 ###################################
-# stanford.edu
-# Domains used: stanford.edu
+# tudelft.nl
+# Domains used: tudelft.nl
 #
 ### Email Setup
-# Domains surveyed: cs.stanford.edu, stanford.edu
+# Domains surveyed: tudelft.nl, student.tudelft.nl
 #
-# Domain: cs.stanford.edu
-# Provider(s): 
-# Hosted at: STANFORD
-# MXes: smtp2.cs.stanford.edu., smtp1.cs.stanford.edu., cs.stanford.edu., smtp3.cs.stanford.edu.
-# 
-# MX: smtp2.cs.stanford.edu
-# A 171.64.64.26 ASN:32 AS-NAME: STANFORD
-# 
-# MX: smtp1.cs.stanford.edu
-# A 171.64.64.25 ASN:32 AS-NAME: STANFORD
-# 
-# MX: cs.stanford.edu
-# A 171.64.64.64 ASN:32 AS-NAME: STANFORD
-# 
-# MX: smtp3.cs.stanford.edu
-# A 171.64.64.27 ASN:32 AS-NAME: STANFORD
-#-
-# Domain: stanford.edu
-# Provider(s): proofpoint
-# Hosted at: PROOFPOINT-ASN-US-WEST
+# Domain: tudelft.nl
+# Provider(s): proofpoint_appliance
+# Hosted at: TUDELFT-NL
 # DMARC reporting: rua=dmarc_ruf@emaildefense.proofpoint.com; ruf=dmarc_ruf@emaildefense.proofpoint.com
-# MXes: mxa-00000d03.gslb.pphosted.com., mxb-00000d03.gslb.pphosted.com.
+# MXes: ppa1.tudelft.nl., ppa4.tudelft.nl., ppa3.tudelft.nl., ppa2.tudelft.nl.
 # 
-# MX: mxa-00000d03.gslb.pphosted.com
-# A 148.163.149.244 ASN:26211 AS-NAME: PROOFPOINT-ASN-US-WEST
+# MX: ppa1.tudelft.nl
+# A 131.180.77.181 ASN:1128 AS-NAME: TUDELFT-NL
 # 
-# MX: mxb-00000d03.gslb.pphosted.com
-# A 148.163.149.244 ASN:26211 AS-NAME: PROOFPOINT-ASN-US-WEST
+# MX: ppa4.tudelft.nl
+# A 131.180.77.184 ASN:1128 AS-NAME: TUDELFT-NL
+# 
+# MX: ppa3.tudelft.nl
+# A 131.180.77.183 ASN:1128 AS-NAME: TUDELFT-NL
+# 
+# MX: ppa2.tudelft.nl
+# A 131.180.77.182 ASN:1128 AS-NAME: TUDELFT-NL
+#-
+# Domain: student.tudelft.nl
+# Provider(s): surf
+# Hosted at: SURFNET-NL
+# MXes: mx11.surfmailfilter.nl., mx10.surfmailfilter.nl.
+# 
+# MX: mx11.surfmailfilter.nl
+# A 195.169.13.8 ASN:1103 AS-NAME: SURFNET-NL
+# AAAA 2001:610:1:40ab:195:169:13:8 ASN:1103 AS-NAME: SURFNET-NL
+# 
+# MX: mx10.surfmailfilter.nl
+# A 192.87.106.168 ASN:1103 AS-NAME: SURFNET-NL
+# AAAA 2001:610:188:173:192:87:106:168 ASN:1103 AS-NAME: SURFNET-NL
 #-
 ### Learning Management System(s)
-# LMS surveyed: canvas.stanford.edu
+# LMS surveyed: brightspace.tudelft.nl
 #
-# LMS Address: https://canvas.stanford.edu/
-# Provider(s): instructure.com
-# Hosted at: AMAZON-AES
-# 
-# Base name: canvas.stanford.edu
-# CNAME -> stanford2-vanity.instructure.com
-# CNAME -> canvas-iad-prod-c98-1329570919.us-east-1.elb.amazonaws.com
-# A 3.221.184.254 ASN:14618 AS-NAME: AMAZON-AES
-# A 3.228.83.160 ASN:14618 AS-NAME: AMAZON-AES
-# A 54.89.42.10 ASN:14618 AS-NAME: AMAZON-AES
-#-
-### Base Web Service(s)
-# Names surveyed: stanford.edu, www.stanford.edu
-#
-# FQDN: stanford.edu
-# Hosted at: STANFORD
-# 
-# Base name: stanford.edu
-# A 171.67.215.200 ASN:32 AS-NAME: STANFORD
-# AAAA 2607:f6d0:0:925a::ab43:d7c8 ASN:32 AS-NAME: STANFORD
-#-
-# FQDN: www.stanford.edu
-# Hosted at: FASTLY
-# 
-# Base name: www.stanford.edu
-# CNAME -> pantheon-systems.map.fastly.net
-# A 151.101.114.133 ASN:54113 AS-NAME: FASTLY
-# AAAA 2a04:4e42:1b::645 ASN:54113 AS-NAME: FASTLY
-#-
-### Other Service(s)
-# Names surveyed: gradadmissions.stanford.edu
-#
-# FQDN: gradadmissions.stanford.edu
-# Provider(s): acsitefactory.com
+# LMS Address: https://brightspace.tudelft.nl/
+# Provider(s): brightspace.com
 # Hosted at: AMAZON-02
 # 
-# Base name: gradadmissions.stanford.edu
-# CNAME -> gradadmissionsd9.cardinalsites.acsitefactory.com
-# CNAME -> cardinalsites01live.enterprise-g1.acquia-sites.com
-# A 34.215.171.12 ASN:16509 AS-NAME: AMAZON-02
+# Base name: brightspace.tudelft.nl
+# CNAME -> tudelft.brightspace.com
+# A 54.220.17.170 ASN:16509 AS-NAME: AMAZON-02
+# A 54.77.244.65 ASN:16509 AS-NAME: AMAZON-02
+# A 54.194.179.95 ASN:16509 AS-NAME: AMAZON-02
+# A 52.211.110.116 ASN:16509 AS-NAME: AMAZON-02
+#-
+### Base Web Service(s)
+# Names surveyed: tudelft.nl, www.tudelft.nl
+#
+# FQDN: tudelft.nl
+# Hosted at: TUDELFT-NL, SURFNET-NL
+# 
+# Base name: tudelft.nl
+# A 130.161.128.82 ASN:1128 AS-NAME: TUDELFT-NL
+# AAAA 2001:610:908:112:131:180:77:102 ASN:1103 AS-NAME: SURFNET-NL
+#-
+# FQDN: www.tudelft.nl
+# Hosted at: AMAZON-02
+# 
+# Base name: www.tudelft.nl
+# A 3.251.22.13 ASN:16509 AS-NAME: AMAZON-02
+# A 54.73.174.150 ASN:16509 AS-NAME: AMAZON-02
 #-
 ### Other Service(s)
-# Domains surveyed: stanford.edu
+# Domains surveyed: tudelft.nl
 #
-# Service Domain: stanford.edu
-# Provider(s): zoom, webex
+# Service Domain: tudelft.nl
+# Provider(s): zoom, sfb/teams-local
 # 
 # Service: zoom
 # Hosted at: CLOUDFLARESPECTRUM
-# Base name: stanford.zoom.us
+# Base name: tudelft.zoom.us
 # CNAME -> www.zoom.us
 # CNAME -> zoom.us
 # A 170.114.52.2 ASN:209242 AS-NAME: CLOUDFLARESPECTRUM
 #
-# Service: webex
-# Hosted at: 13445
-# Base name: stanford.webex.com
-# CNAME -> nebulaie.webex.com
-# CNAME -> global-nebulaie.webex.com
-# A 66.114.168.199 ASN:13445 AS-NAME: 13445
+# Service: sfb/teams-local
+# Hosted at: TUDELFT-NL
+# Base name: lyncdiscover.tudelft.nl
+# A 131.180.187.62 ASN:1128 AS-NAME: TUDELFT-NL
 #
 #-
 ###################################
