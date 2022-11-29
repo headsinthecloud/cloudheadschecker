@@ -38,13 +38,12 @@ else:
 setuptools.setup(
         name=package_name,
         version=verstr,
-        author="Anonymous Authors",
-        # author_email="",
-        author_email="",
+        author="Tobias Fiebig",
+        author_email="tobias@cloudheads.net",
         description="Checks for cloud services",
         long_description=long_description,
         long_description_content_type="text/markdown",
-        url="",
+        url="https://git.aperture-labs.org/Cloudheads/cloud-checker",
         setup_requires=['wheel'],
         packages=setuptools.find_packages(),
         classifiers=[
