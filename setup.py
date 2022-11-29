@@ -49,7 +49,7 @@ setuptools.setup(
         packages=setuptools.find_packages(),
         classifiers=[
             "Programming Language :: Python :: 3",
-            "License :: Internal use",
+            "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
             "Operating System :: OS Independent",
             ],
         entry_points={
