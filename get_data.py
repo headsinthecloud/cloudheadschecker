@@ -70,7 +70,7 @@ def get_resolver(dns_resolver):
         try:
             the_resolver = dns.resolver.Resolver(configure=False)
             the_resolver.nameservers = [dns_resolver]
-        except (dns.exception, ValueError, TypeError) as ex:
+        except (DNSException, ValueError, TypeError) as ex:
             logger.exception('Error setting resolver to %s', dns_resolver)
             sys.exit('ERROR: Could not set resolver')
 
@@ -243,13 +243,13 @@ def get_as_data_cymru():
 
 
 def get_as_data():
+    the_date = "20221015"
     HOST = "bttf-whois.as59645.net"
     PORT = 10000
     RDY = "# READY"
     SFX = "# goodbye"
-    DT = " 20221015"
 
-    logger.info('Using AS59645 Bulk Whois; Selected date: %s', DT)
+    logger.info('Using AS59645 Bulk Whois; Selected date: %s', the_date)
 
     global IP_ADDR_LIST
     try:
@@ -264,7 +264,7 @@ def get_as_data():
                     rdy = True
             s.sendall(b"begin\n")
             for ip in IP_ADDR_LIST:
-                s.sendall((ip + DT + "\n").encode('utf-8'))
+                s.sendall(f"{ip} {the_date}\n".encode('utf-8'))
             s.sendall(b"end\n")
             data_raw = fs.readline().strip()
             while data_raw and not data_raw == SFX:
@@ -295,29 +295,33 @@ def get_as_data_stub(ip):
 
 def res_to_ip(res, name):
     ret = {}
+    ips = []
+
     name = name.strip('.')
     try:
         r = res.resolve(name, 'CNAME')
         for cn in r:
             ret[name], ips = res_to_ip(res, str(cn.to_text()))
         return ret, ips
-    except Exception as e:
+    except DNSException as e:
+        logger.debug('dns exception quering cname: %s', str(e))
         ret = {name: {'A': {}, 'AAAA': {}}}
-        ips = []
         try:
             r = res.resolve(name, 'A')
             for a in r:
                 ret[name]['A'][str(a.to_text())] = get_as_data_stub(str(a.to_text()))
                 ips.append(str(a.to_text()))
-        except Exception as e:
-            pass
+        except DNSException as e:
+            logger.debug('dns exception quering A: %s', str(e))
+
         try:
             r = res.resolve(name, 'AAAA')
             for aaaa in r:
                 ret[name]['AAAA'][str(aaaa.to_text())] = get_as_data_stub(str(aaaa.to_text()))
                 ips.append(str(aaaa.to_text()))
-        except Exception as e:
-            pass
+        except DNSException as e:
+            logger.debug('dns exception quering A: %s', str(e))
+
         return ret, ips
 
 
